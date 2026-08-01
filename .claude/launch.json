@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "movieCinema",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--urls", "http://localhost:5001"],
+      "cwd": "E:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema",
+      "port": 5001
+    }
+  ]
+}

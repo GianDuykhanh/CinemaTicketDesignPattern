@@ -1,0 +1,46 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    
+    var user = ViewContext.HttpContext.User;
+    bool isAdmin = user.Identity != null && user.Identity.IsAuthenticated && user.IsInRole("Admin");
+    
+    bool isAdminPage = false;
+    
+    if (controller == "Cinemas" || 
+        controller == "Categories" || 
+        controller == "Vouchers" || 
+        controller == "CinemaRooms" || 
+        controller == "Producers" || 
+        controller == "Actors")
+    {
+        isAdminPage = true;
+    }
+    else if (controller == "Showtimes")
+    {
+        if (action != "Schedule" || isAdmin)
+        {
+            isAdminPage = true;
+        }
+    }
+    else if (controller == "Movies")
+    {
+        if (isAdmin)
+        {
+            isAdminPage = true;
+        }
+    }
+    else if (controller == "Orders" && (action == "ManageBookings" || action == "Revenue" || action == "Reports" || action == "Dashboard"))
+    {
+        isAdminPage = true;
+    }
+    
+    if (isAdminPage)
+    {
+        Layout = "_AdminLayout";
+    }
+    else
+    {
+        Layout = "_Layout";
+    }
+}

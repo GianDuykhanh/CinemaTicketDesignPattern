@@ -1,0 +1,164 @@
+@using movieCinema.Data.ViewModels;
+@model RegisterVM;
+
+@{
+    ViewData["Title"] = "Register a new account";
+}
+
+<style>
+    .register-container {
+        min-height: 75vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .register-card {
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 2.5rem;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        width: 100%;
+        max-width: 520px;
+        transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+    .register-card:hover {
+        border-color: rgba(255, 193, 7, 0.25);
+    }
+    .brand-logo-ring {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #ffc107, #ff2a5f);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        margin: 0 auto 1.5rem auto;
+        box-shadow: 0 0 20px rgba(255, 42, 95, 0.3);
+    }
+    .form-control-glass {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+        border-radius: 12px !important;
+        padding: 10px 15px !important;
+        transition: all 0.3s ease !important;
+    }
+    .form-control-glass:focus {
+        border-color: #ffc107 !important;
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.2) !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+    }
+    .form-label-premium {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .btn-premium-gradient {
+        background: linear-gradient(90deg, #ffc107, #ff2a5f);
+        border: none;
+        color: white;
+        font-weight: 700;
+        border-radius: 12px;
+        padding: 12px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+    .btn-premium-gradient:hover {
+        background: linear-gradient(90deg, #ffa000, #e01f4f);
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(255, 42, 95, 0.4);
+        color: white;
+    }
+    .btn-premium-outline {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
+        border-radius: 12px;
+        padding: 10px;
+        background: transparent;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-premium-outline:hover {
+        border-color: white;
+        color: white;
+        background: rgba(255, 255, 255, 0.05);
+    }
+</style>
+
+<div class="register-container">
+    <div class="register-card">
+        <div class="text-center mb-4">
+            <div class="brand-logo-ring">
+                <i class="bi bi-person-plus-fill"></i>
+            </div>
+            <h3 class="text-white fw-bold mb-1">Register Account</h3>
+            <p class="text-white-50 small">Become a MovieCinema member to earn rewards points</p>
+        </div>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger bg-danger bg-opacity-10 text-danger border-danger border-opacity-25 rounded-3 mb-3 small" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            </div>
+        }
+
+        <form asp-action="Register">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="FullName" class="form-label-premium"><i class="bi bi-person-fill text-warning"></i> Full Name</label>
+                <input asp-for="FullName" class="form-control form-control-glass" placeholder="John Doe" autocomplete="off" required />
+                <span asp-validation-for="FullName" class="text-danger small mt-1 d-block fw-semibold"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="EmailAddress" class="form-label-premium"><i class="bi bi-envelope-fill text-info"></i> Email Address</label>
+                <input asp-for="EmailAddress" class="form-control form-control-glass" placeholder="email@example.com" autocomplete="off" required />
+                <span asp-validation-for="EmailAddress" class="text-danger small mt-1 d-block fw-semibold"></span>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                    <div class="form-group">
+                        <label asp-for="Password" class="form-label-premium"><i class="bi bi-shield-lock-fill text-danger"></i> Password</label>
+                        <input asp-for="Password" type="password" class="form-control form-control-glass" placeholder="••••••••" required />
+                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block fw-semibold"></span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <div class="form-group">
+                        <label asp-for="ConfirmPassword" class="form-label-premium"><i class="bi bi-shield-lock-fill text-danger"></i> Confirm Password</label>
+                        <input asp-for="ConfirmPassword" type="password" class="form-control form-control-glass" placeholder="••••••••" required />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small mt-1 d-block fw-semibold"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid mb-3">
+                <button class="btn btn-premium-gradient py-2.5" type="submit">Register</button>
+            </div>
+
+            <div class="text-center mt-4">
+                <p class="text-white-50 small mb-0">
+                    Already have an account? 
+                    <a asp-action="Login" class="text-warning fw-semibold text-decoration-none">Login</a>
+                </p>
+                <div class="my-3 border-bottom border-secondary border-opacity-25"></div>
+                <a class="btn btn-premium-outline btn-sm px-4 rounded-pill" asp-controller="Movies" asp-action="Index">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Home Page
+                </a>
+            </div>
+        </form>
+    </div>
+</div>

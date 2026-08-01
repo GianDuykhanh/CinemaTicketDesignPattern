@@ -1,0 +1,718 @@
+@model List<Order>
+
+@{
+    ViewData["Title"] = "Lịch sử giao dịch";
+    var activeOrders = Model.Where(o => o.Status == "Purchased").ToList();
+    var cancelledOrders = Model.Where(o => o.Status == "Cancelled").ToList();
+}
+
+<style>
+    .bg-dark-glass {
+        background: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(10px);
+    }
+    .border-glass {
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    .order-header-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ff2a5f, #00f0ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    }
+    .btn-movie-gradient {
+        background: linear-gradient(90deg, #ff2a5f, #00f0ff);
+        border: none;
+        color: white;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .btn-movie-gradient:hover {
+        background: linear-gradient(90deg, #e01f4f, #00ced1);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 240, 255, 0.4);
+        color: white;
+    }
+    .nav-tabs-premium {
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    .nav-tabs-premium .nav-link {
+        color: rgba(255, 255, 255, 0.6);
+        border: none;
+        border-bottom: 3px solid transparent;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        background: transparent;
+        padding: 0.8rem 1.5rem;
+    }
+    .nav-tabs-premium .nav-link:hover {
+        color: white;
+        border-bottom: 3px solid rgba(0, 240, 255, 0.4);
+    }
+    .nav-tabs-premium .nav-link.active {
+        color: #00f0ff !important;
+        border-bottom: 3px solid #00f0ff !important;
+        background: transparent !important;
+    }
+    .order-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        overflow: hidden;
+        backdrop-filter: blur(5px);
+    }
+    .order-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+    .order-card.active-order {
+        border-left: 5px solid #00f0ff;
+    }
+    .order-card.cancelled-order {
+        border-left: 5px solid #ff2a5f;
+    }
+    .order-card-header {
+        background: rgba(255, 255, 255, 0.02);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .order-card-body {
+        padding: 1.5rem;
+    }
+    .order-item-row {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+    }
+    .order-item-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    .order-item-poster img {
+        width: 70px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .order-item-info {
+        flex-grow: 1;
+    }
+    .order-item-name {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 5px;
+        display: block;
+    }
+    .order-id-badge {
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+    }
+    .order-status-badge {
+        font-size: 0.8rem;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .order-status-badge.purchased {
+        background: rgba(0, 240, 255, 0.1);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        color: #00f0ff;
+    }
+    .order-status-badge.cancelled {
+        background: rgba(255, 42, 95, 0.1);
+        border: 1px solid rgba(255, 42, 95, 0.3);
+        color: #ff2a5f;
+    }
+    .border-dashed {
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+    }
+    .barcode-line-container {
+        display: inline-flex;
+        gap: 1.5px;
+        background: white;
+        padding: 6px 12px;
+        border-radius: 4px;
+    }
+    .barcode-line {
+        background: black;
+    }
+    .invoice-modal {
+        background: #121214 !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        backdrop-filter: blur(20px);
+    }
+
+    @@media print {
+        body * {
+            visibility: hidden !important;
+        }
+        header, footer, nav, .nav-tabs-premium, .glass-panel, .alert, .btn-movie-gradient, form, button, .modal-header, .modal-footer {
+            display: none !important;
+        }
+        .modal.show {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            visibility: visible !important;
+            background: white !important;
+            color: black !important;
+        }
+        .modal.show .modal-dialog {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        .modal.show .modal-content {
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
+            color: black !important;
+            width: 100% !important;
+        }
+        .modal.show .modal-body,
+        .modal.show .invoice-container {
+            visibility: visible !important;
+            width: 100% !important;
+            background: white !important;
+            color: black !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .modal.show .text-white,
+        .modal.show .text-white-50,
+        .modal.show .text-muted,
+        .modal.show .text-info,
+        .modal.show .text-success,
+        .modal.show .text-warning,
+        .modal.show strong,
+        .modal.show span,
+        .modal.show h4,
+        .modal.show h6 {
+            color: black !important;
+        }
+        .modal.show .border-dashed {
+            border-bottom: 1px dashed black !important;
+        }
+        .modal.show .barcode-line-container {
+            background: white !important;
+            border: 1px solid black !important;
+        }
+        .modal.show .barcode-line {
+            background: black !important;
+    }
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <!-- Title Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="order-header-icon">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 fw-bold text-white">Transaction History</h2>
+                    <p class="text-muted mb-0" style="font-size:0.875rem;">Look up your purchased tickets, cancelled tickets, and invoices</p>
+                </div>
+            </div>
+            
+            @if (User.Identity.IsAuthenticated && User.IsInRole("Admin") && Model.Any() && string.IsNullOrEmpty(ViewBag.SearchEmail))
+            {
+                <form asp-action="ClearAllOrders" method="post" onsubmit="return confirm('Are you sure you want to delete all transaction history? This action cannot be undone.');">
+                    <button type="submit" class="btn btn-outline-danger d-flex align-items-center gap-2 rounded-pill px-3">
+                        <i class="bi bi-trash3-fill"></i> Clear All History
+                    </button>
+                </form>
+            }
+        </div>
+
+        <!-- Alert messages -->
+        @if (TempData["StatusMessage"] != null)
+        {
+            <div class="alert alert-success bg-success-subtle text-success border-success-subtle alert-dismissible fade show rounded-3 mb-4" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> @TempData["StatusMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Search box Glassmorphism (Only for Admin to look up other users) -->
+        @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+        {
+            <div class="glass-panel p-4 mb-4 rounded-4 border-glass shadow bg-dark-glass">
+                <form method="get" asp-action="Index" class="row g-3 align-items-end justify-content-center">
+                    <div class="col-md-5 col-sm-9">
+                        <label for="searchEmail" class="form-label text-white-50 small mb-2">
+                            <i class="bi bi-search me-1"></i> Quick lookup by member email / booking email
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark-glass text-muted border-glass"><i class="bi bi-envelope"></i></span>
+                            <input type="email" id="searchEmail" name="searchEmail" class="form-control bg-dark-glass text-white border-glass" placeholder="Enter email address..." value="@ViewBag.SearchEmail" required />
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-sm-3 d-grid">
+                        <button type="submit" class="btn btn-movie-gradient py-2 rounded-pill"><i class="bi bi-search me-1"></i> Search</button>
+                    </div>
+                    <div class="col-md-2 col-sm-6 d-grid">
+                        <a href="@Url.Action("Index", new { viewAll = true })" class="btn btn-outline-info py-2 rounded-pill"><i class="bi bi-people-fill me-1"></i> View All</a>
+                    </div>
+                    @if (!string.IsNullOrEmpty(ViewBag.SearchEmail) || ViewBag.ViewAll == true)
+                    {
+                        <div class="col-md-2 col-sm-6 d-grid">
+                            <a href="@Url.Action("Index", new { clearCookie = true })" class="btn btn-outline-secondary py-2 rounded-pill"><i class="bi bi-x-circle me-1"></i> Clear Filters</a>
+                        </div>
+                    }
+                </form>
+            </div>
+        }
+
+        @if (User.Identity.IsAuthenticated && User.IsInRole("Admin") && ViewBag.ViewAll == true)
+        {
+            <div class="alert alert-warning bg-warning-subtle text-warning border-warning-subtle rounded-3 mb-4 d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> The system is displaying all transactions in the database (Admin Privilege).
+                </div>
+                <span class="badge bg-warning text-dark rounded-pill">@Model.Count transactions system-wide</span>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(ViewBag.SearchEmail))
+        {
+            <div class="alert alert-info bg-info-subtle text-info border-info-subtle rounded-3 mb-4 d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="bi bi-filter-circle-fill me-2"></i> Showing transaction history for email: <strong>@ViewBag.SearchEmail</strong>
+                </div>
+                <span class="badge bg-info text-white rounded-pill">@Model.Count transactions</span>
+            </div>
+        }
+
+        @if (ViewBag.RequireEmail == true)
+        {
+            <div class="order-empty-card text-center py-5 glass-panel rounded-4 bg-dark-glass border-glass">
+                <div class="order-empty-icon mb-3 text-info" style="font-size:3.5rem;">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h4 class="text-white mb-2 fw-bold">Look Up Transaction History</h4>
+                <p class="text-muted mb-4 mx-auto" style="max-width: 500px; font-size:0.95rem;">
+                    To protect personal privacy, please enter your email address in the search box above to view your purchased tickets, cancelled tickets, and payment invoices.
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a class="btn btn-movie-gradient px-4 rounded-pill" asp-controller="Movies" asp-action="Index">
+                        <i class="bi bi-film me-2"></i> Book tickets now
+                    </a>
+                    <a class="btn btn-outline-secondary px-4 rounded-pill" href="@Url.Action("Index", new { viewAll = true })">
+                        <i class="bi bi-person-gear me-2"></i> View All (Admin)
+                    </a>
+                </div>
+            </div>
+        }
+        else if (!Model.Any())
+        {
+            <div class="order-empty-card text-center py-5 glass-panel rounded-4">
+                <div class="order-empty-icon mb-3 text-muted" style="font-size:3rem;">
+                    <i class="bi bi-bag-x"></i>
+                </div>
+                <h4 class="text-white mb-2">No transactions found</h4>
+                <p class="text-muted mb-4">Start booking movie tickets to create your transaction history.</p>
+                <a class="btn btn-movie-gradient px-4 rounded-pill" asp-controller="Movies" asp-action="Index">
+                    <i class="bi bi-film me-2"></i>Book tickets now
+                </a>
+            </div>
+        }
+        else
+        {
+            <!-- Tabs Navigation -->
+            <ul class="nav nav-tabs nav-tabs-premium mb-4 gap-2" id="transactionTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="purchased-tab" data-bs-toggle="tab" data-bs-target="#purchased" type="button" role="tab" aria-controls="purchased" aria-selected="true">
+                        <i class="bi bi-ticket-perforated me-2"></i>Active Tickets (@activeOrders.Count)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="cancelled-tab" data-bs-toggle="tab" data-bs-target="#cancelled" type="button" role="tab" aria-controls="cancelled" aria-selected="false">
+                        <i class="bi bi-x-circle me-2"></i>Cancelled Tickets (@cancelledOrders.Count)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button" role="tab" aria-controls="invoices" aria-selected="false">
+                        <i class="bi bi-receipt me-2"></i>Payment Invoices (@Model.Count)
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tabs Content -->
+            <div class="tab-content" id="transactionTabsContent">
+                
+                <!-- TAB 1: VE DA MUA -->
+                <div class="tab-pane fade show active" id="purchased" role="tabpanel" aria-labelledby="purchased-tab">
+                    @if (!activeOrders.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-info-circle fs-3 d-block mb-2"></i> You do not have any active tickets.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-4">
+                            @foreach (var order in activeOrders)
+                            {
+                                <div class="col-12">
+                                    <div class="order-card active-order">
+                                        <div class="order-card-header">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="order-id-badge">
+                                                    <i class="bi bi-hash"></i>@order.Id
+                                                </div>
+                                                <div class="order-status-badge purchased">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Active
+                                                </div>
+                                                <span class="text-muted small"><i class="bi bi-calendar-event me-1"></i>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="text-muted small me-2">Total Paid:</span>
+                                                <strong class="text-info fs-5">@((order.TotalPrice - order.DiscountAmount).ToString("N0")) VND</strong>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="order-card-body">
+                                            <div class="d-flex flex-column gap-3">
+                                                @foreach (var item in order.OrderItems)
+                                                {
+                                                    <div class="order-item-row">
+                                                        <div class="order-item-poster">
+                                                            <img src="@(item.Showtime?.Movie?.ImageURL ?? "")" alt="@(item.Showtime?.Movie?.Name ?? "N/A")" onerror="this.onerror=null;this.src='/images/default-poster.png';" />
+                                                        </div>
+                                                        <div class="order-item-info">
+                                                            <span class="order-item-name">@(item.Showtime?.Movie?.Name ?? "Unknown Movie")</span>
+                                                            
+                                                            <div class="row g-2 mt-1">
+                                                                <div class="col-md-8 col-sm-12 text-white-50 small">
+                                                                    <div class="mb-1">
+                                                                        <i class="bi bi-calendar3 me-1 text-info"></i> Showtime: <strong>@(item.Showtime?.StartTime.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</strong>
+                                                                    </div>
+                                                                    <div class="mb-1">
+                                                                        <i class="bi bi-door-open me-1 text-warning"></i> Room: <strong>@(item.Showtime?.CinemaRoom?.Name ?? "Room N/A")</strong>
+                                                                        &nbsp;&bull;&nbsp;
+                                                                        <i class="bi bi-building me-1 text-success"></i> Cinema: <strong>@(item.Showtime?.CinemaRoom?.Cinema?.Name ?? "Cinema N/A")</strong>
+                                                                    </div>
+                                                                    @if (!string.IsNullOrEmpty(item.SelectedSeats))
+                                                                    {
+                                                                        <div>
+                                                                            <i class="bi bi-ticket-perforated me-1 text-danger"></i> Selected seats: <strong class="text-warning">@item.SelectedSeats</strong>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                                <div class="col-md-4 col-sm-12 text-md-end text-sm-start d-flex flex-column justify-content-between align-items-md-end">
+                                                                    <div class="small text-white-50">
+                                                                        Qty: @item.Amount &nbsp;&bull;&nbsp; Unit Price: @item.Price.ToString("N0") VND
+                                                                    </div>
+                                                                    
+                                                                    <div class="mt-2">
+                                                                        @if (item.Showtime != null && item.Showtime.StartTime > DateTime.Now)
+                                                                        {
+                                                                            <form asp-action="CancelOrder" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this ticket? Your member points and seats will be refunded/updated.');">
+                                                                                <input type="hidden" name="id" value="@order.Id" />
+                                                                                <input type="hidden" name="searchEmail" value="@ViewBag.SearchEmail" />
+                                                                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                                                                    <i class="bi bi-x-circle me-1"></i> Cancel Ticket
+                                                                                </button>
+                                                                            </form>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="badge bg-secondary-subtle text-secondary py-2 px-3 rounded-pill">
+                                                                                <i class="bi bi-lock-fill me-1"></i> Screened (Cannot cancel)
+                                                                            </span>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- TAB 2: VE DA HUY -->
+                <div class="tab-pane fade" id="cancelled" role="tabpanel" aria-labelledby="cancelled-tab">
+                    @if (!cancelledOrders.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-info-circle fs-3 d-block mb-2"></i> You do not have any cancelled tickets.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-4">
+                            @foreach (var order in cancelledOrders)
+                            {
+                                <div class="col-12">
+                                    <div class="order-card cancelled-order">
+                                        <div class="order-card-header">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="order-id-badge">
+                                                    <i class="bi bi-hash"></i>@order.Id
+                                                </div>
+                                                <div class="order-status-badge cancelled">
+                                                    <i class="bi bi-x-circle-fill me-1"></i>Cancelled
+                                                </div>
+                                                <span class="text-muted small"><i class="bi bi-calendar-event me-1"></i>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</span>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="text-muted small me-2">Refunded/Cancelled Amount:</span>
+                                                <strong class="text-danger fs-5">@((order.TotalPrice - order.DiscountAmount).ToString("N0")) VND</strong>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="order-card-body">
+                                            <div class="d-flex flex-column gap-3">
+                                                @foreach (var item in order.OrderItems)
+                                                {
+                                                    <div class="order-item-row opacity-75">
+                                                        <div class="order-item-poster">
+                                                            <img src="@(item.Showtime?.Movie?.ImageURL ?? "")" alt="@(item.Showtime?.Movie?.Name ?? "N/A")" onerror="this.onerror=null;this.src='/images/default-poster.png';" />
+                                                        </div>
+                                                        <div class="order-item-info">
+                                                            <span class="order-item-name text-decoration-line-through text-white-50">@(item.Showtime?.Movie?.Name ?? "Unknown Movie")</span>
+                                                            
+                                                            <div class="row g-2 mt-1">
+                                                                <div class="col-12 text-white-50 small">
+                                                                    <div>
+                                                                        <i class="bi bi-calendar3 me-1 text-info"></i> Original Showtime: @(item.Showtime?.StartTime.ToString("dd/MM/yyyy HH:mm") ?? "N/A")
+                                                                    </div>
+                                                                    <div>
+                                                                        <i class="bi bi-door-open me-1 text-warning"></i> Room: @(item.Showtime?.CinemaRoom?.Name ?? "Room N/A")
+                                                                        &nbsp;&bull;&nbsp;
+                                                                        <i class="bi bi-ticket-perforated me-1 text-danger"></i> Selected seats: <strong class="text-decoration-line-through">@item.SelectedSeats</strong>
+                                                                    </div>
+                                                                    <div class="mt-2 text-danger small">
+                                                                        <i class="bi bi-info-circle me-1"></i> Order cancelled and points refunded (if applicable). Seats have been released.
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- TAB 3: HOA DON THANH TOAN -->
+                <div class="tab-pane fade" id="invoices" role="tabpanel" aria-labelledby="invoices-tab">
+                    <div class="glass-panel p-3 border-glass rounded-4 bg-dark-glass">
+                        <div class="table-responsive">
+                            <table class="table table-hover text-white align-middle mb-0">
+                                <thead>
+                                    <tr class="text-white-50 border-secondary small">
+                                        <th scope="col">Invoice ID</th>
+                                        <th scope="col">Transaction Date</th>
+                                        <th scope="col">Customer</th>
+                                        <th scope="col">Method</th>
+                                        <th scope="col" class="text-end">Subtotal</th>
+                                        <th scope="col" class="text-end">Discount</th>
+                                        <th scope="col" class="text-end">Total Paid</th>
+                                        <th scope="col" class="text-center">Status</th>
+                                        <th scope="col" class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in Model)
+                                    {
+                                        var paidAmount = order.TotalPrice - order.DiscountAmount;
+                                        if (paidAmount < 0) paidAmount = 0;
+                                        
+                                        <tr class="border-secondary small">
+                                            <td><span class="fw-bold text-info">#MC-@order.Id</span></td>
+                                            <td>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>@order.UserId</td>
+                                            <td>
+                                                @if (order.PaymentMethod == "PayPal")
+                                                {
+                                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill"><i class="bi bi-paypal me-1"></i>PayPal</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill"><i class="bi bi-cash me-1"></i>At Cinema</span>
+                                                }
+                                            </td>
+                                            <td class="text-end text-white-50">@order.TotalPrice.ToString("N0") VND</td>
+                                            <td class="text-end text-success">-@order.DiscountAmount.ToString("N0") VND</td>
+                                            <td class="text-end fw-bold text-white">@paidAmount.ToString("N0") VND</td>
+                                            <td class="text-center">
+                                                @if (order.Status == "Cancelled")
+                                                {
+                                                    <span class="text-danger small"><i class="bi bi-x-circle-fill me-1"></i>Cancelled</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-success small"><i class="bi bi-check-circle-fill me-1"></i>Success</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#invoiceModal-@order.Id">
+                                                    <i class="bi bi-file-earmark-text me-1"></i> View Receipt
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modals Hóa đơn cho từng đơn hàng -->
+            @foreach (var order in Model)
+            {
+                var paidAmount = order.TotalPrice - order.DiscountAmount;
+                if (paidAmount < 0) paidAmount = 0;
+                
+                <div class="modal fade" id="invoiceModal-@order.Id" tabindex="-1" aria-labelledby="invoiceModalLabel-@order.Id" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content invoice-modal rounded-4 shadow-lg text-white">
+                            <div class="modal-header border-0 pb-0">
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-4 pt-0">
+                                <div class="invoice-container">
+                                    <div class="text-center mb-3">
+                                        <h4 class="fw-bold text-info mb-1" style="letter-spacing: 1px;"><i class="bi bi-ticket-perforated-fill me-2"></i>MOVIECINEMA</h4>
+                                        <span class="text-muted small fw-semibold" style="font-size:0.75rem;">PAYMENT INVOICE RECEIPT</span>
+                                        <div class="my-3 border-dashed"></div>
+                                    </div>
+                                    
+                                    <div class="row small text-white-50 g-2 mb-2">
+                                        <div class="col-6">Invoice ID: <strong class="text-white">#MC-@order.Id</strong></div>
+                                        <div class="col-6 text-end">Date: @order.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                        <div class="col-6">Customer: <strong class="text-white">@order.UserId</strong></div>
+                                        <div class="col-6 text-end">Email: @order.Email</div>
+                                    </div>
+                                    
+                                    <div class="my-3 border-dashed"></div>
+                                    
+                                    <div class="invoice-items">
+                                        <h6 class="text-white-50 small mb-2 fw-bold"><i class="bi bi-film me-1"></i> TICKET DETAILS</h6>
+                                        @foreach (var item in order.OrderItems)
+                                        {
+                                            <div class="mb-3 p-2 rounded" style="background: rgba(255,255,255,0.02);">
+                                                <h6 class="fw-bold mb-1 text-white">@(item.Showtime?.Movie?.Name ?? "Movie N/A")</h6>
+                                                <div class="row small text-white-50 g-1">
+                                                    <div class="col-8">
+                                                        Showtime: @(item.Showtime?.StartTime.ToString("dd/MM HH:mm") ?? "N/A") (@(item.Showtime?.CinemaRoom?.Name ?? "Room N/A"))<br/>
+                                                        Seats: <strong class="text-warning">@item.SelectedSeats</strong>
+                                                    </div>
+                                                    <div class="col-4 text-end align-self-end">
+                                                        @item.Amount ticket(s) x @((item.Price).ToString("N0")) VND
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    
+                                    <div class="my-3 border-dashed"></div>
+                                    
+                                    <div class="invoice-pricing small text-white-50">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Ticket Subtotal</span>
+                                            <span>@order.TotalPrice.ToString("N0") VND</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1 text-success">
+                                            <span>Discount</span>
+                                            <span>-@order.DiscountAmount.ToString("N0") VND</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Points Redeemed</span>
+                                            <span>@order.PointsRedeemed points</span>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between fw-bold fs-5 text-white my-3 py-2 border-top border-bottom border-secondary">
+                                            <span>TOTAL PAID</span>
+                                            <span class="text-info">@paidAmount.ToString("N0") VND</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row small text-white-50 g-1 my-3">
+                                        <div class="col-6">Payment Method:</div>
+                                        <div class="col-6 text-end"><strong class="text-white">@(order.PaymentMethod == "PayPal" ? "PayPal (Online)" : "Pay at Cinema")</strong></div>
+                                        <div class="col-6">Transaction Status:</div>
+                                        <div class="col-6 text-end">
+                                            @if (order.Status == "Cancelled")
+                                            {
+                                                <span class="text-danger fw-bold"><i class="bi bi-x-circle me-1"></i>CANCELLED / REFUNDED</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>PAYMENT SUCCESSFUL</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="my-3 border-dashed"></div>
+                                    
+                                    <!-- Simulated Barcode -->
+                                    <div class="text-center my-3">
+                                        <div class="barcode-line-container mb-2">
+                                            @for(int i = 0; i < 35; i++) {
+                                                var width = (i % 3 == 0) ? "3px" : (i % 2 == 0) ? "1px" : "2px";
+                                                <div class="barcode-line" style="display:inline-block; width: @width; height: 35px; background: black; margin-right: 1px;"></div>
+                                            }
+                                        </div>
+                                        <div class="text-muted text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 3px;">
+                                            *MC-@order.Id-@(order.OrderDate.Ticks.ToString().Substring(0, Math.Min(8, order.OrderDate.Ticks.ToString().Length)))*
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center text-muted small mt-2" style="font-size: 0.75rem;">
+                                        Thank you for choosing MovieCinema!<br/>
+                                        Please present this receipt at the counter to receive your tickets.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-0 d-flex justify-content-center gap-2 pt-0 pb-4">
+                                <button type="button" class="btn btn-outline-info rounded-pill px-4" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print Invoice</button>
+                                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>

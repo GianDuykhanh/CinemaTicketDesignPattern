@@ -1,0 +1,49 @@
+@model movieCinema.Models.Voucher
+
+@{
+    ViewData["Title"] = "Xóa mã giảm giá";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="form-glass-card p-4 text-center">
+            
+            <div class="cinema-logo-ring d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger mb-4" style="width: 80px; height: 80px; font-size: 2.2rem; border-radius: 20px; border: 1px solid rgba(220, 53, 69, 0.25);">
+                <i class="bi bi-trash-fill"></i>
+            </div>
+
+            <h2 class="text-white fw-bold h3 mb-2">Bạn có chắc chắn muốn xóa?</h2>
+            <p class="text-danger small mb-4">Hành động này không thể hoàn tác. Mã giảm giá sau sẽ bị xóa vĩnh viễn khỏi hệ thống.</p>
+
+            <div class="text-start p-4 mb-4 rounded border border-danger-subtle" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(7, 10, 19, 0.85) 100%); --bs-border-color: rgba(220, 53, 69, 0.15);">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom border-danger border-opacity-10">
+                    <span class="fw-bold text-uppercase tracking-wider text-danger" style="font-size:0.75rem;">THÔNG TIN VOUCHER</span>
+                    <strong class="text-white">@Model.Code</strong>
+                </div>
+
+                <div class="row g-3" style="font-size:0.9rem;">
+                    <div class="col-6">
+                        <span class="text-muted d-block">Mức giảm</span>
+                        <strong class="text-white">@(Model.IsPercentage ? $"{Model.DiscountPercentage}%" : $"{Model.DiscountAmount.ToString("N0")} đ")</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Đơn tối thiểu</span>
+                        <strong class="text-white">@Model.MinOrderAmount.ToString("N0") đ</strong>
+                    </div>
+                </div>
+            </div>
+
+            <form asp-action="Delete">
+                <input type="hidden" asp-for="Id" />
+                <div class="d-flex gap-3 justify-content-center">
+                    <a asp-action="Index" class="btn btn-premium-outline px-4" style="width: auto;">
+                        <i class="bi bi-arrow-left me-2"></i>Hủy bỏ
+                    </a>
+                    <button type="submit" class="btn btn-danger px-4" style="width: auto; border-radius: 12px; font-weight:600;">
+                        <i class="bi bi-trash me-2"></i>Xác nhận Xóa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

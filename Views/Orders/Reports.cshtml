@@ -1,0 +1,537 @@
+@{
+    ViewData["Title"] = "Báo cáo thống kê";
+}
+
+@section Styles {
+    <style>
+        .bg-dark-glass {
+            background: rgba(0, 0, 0, 0.4) !important;
+            backdrop-filter: blur(10px);
+        }
+        .border-glass {
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        .metric-card-premium {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        .metric-card-premium:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .metric-icon-box {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .btn-movie-gradient {
+            background: linear-gradient(90deg, #ff2a5f, #00f0ff);
+            border: none;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-movie-gradient:hover {
+            background: linear-gradient(90deg, #e01f4f, #00ced1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.4);
+            color: white;
+        }
+        .btn-print-gradient {
+            background: linear-gradient(90deg, #11998e, #38ef7d);
+            border: none;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-print-gradient:hover {
+            background: linear-gradient(90deg, #0e8276, #2ad16a);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(56, 239, 125, 0.4);
+            color: white;
+        }
+        .progress-bar-glow {
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+        }
+        .search-input-glass {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+            border-radius: 20px;
+        }
+        .search-input-glass:focus {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-color: #00f0ff !important;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2) !important;
+        }
+
+        /* Screen only display elements */
+        .print-only {
+            display: none;
+        }
+
+        /* Print styles */
+        @@media print {
+            body {
+                background-color: white !important;
+                color: black !important;
+                font-family: "Times New Roman", Times, serif;
+                font-size: 12pt;
+                line-height: 1.5;
+            }
+            .container, .container-fluid {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .card, .glass-panel, .metric-card-premium {
+                background: transparent !important;
+                border: 1px solid #000000 !important;
+                box-shadow: none !important;
+                color: black !important;
+                backdrop-filter: none !important;
+                transform: none !important;
+                border-radius: 8px !important;
+                margin-bottom: 1.5rem !important;
+                padding: 1rem !important;
+            }
+            .metric-card-premium {
+                display: inline-block !important;
+                width: 23% !important;
+                margin-right: 2% !important;
+                vertical-align: top !important;
+            }
+            .metric-card-premium:last-child {
+                margin-right: 0 !important;
+            }
+            .text-white, .text-info, .text-success, .text-warning, .text-danger, .text-white-50, .text-muted {
+                color: black !important;
+            }
+            .table {
+                color: black !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-top: 1rem !important;
+            }
+            .table th, .table td {
+                border: 1px solid #000000 !important;
+                padding: 6px 10px !important;
+                color: black !important;
+                background-color: transparent !important;
+            }
+            .table thead th {
+                background-color: #f2f2f2 !important;
+                font-weight: bold !important;
+            }
+            .progress {
+                border: 1px solid #000000 !important;
+                background: #e9ecef !important;
+                height: 10px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .progress-bar {
+                background-color: #333333 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            h2, h5 {
+                color: black !important;
+                font-weight: bold !important;
+            }
+            .print-header {
+                margin-bottom: 2rem;
+                border-bottom: 2px double black;
+                padding-bottom: 10px;
+            }
+            .print-signatures {
+                margin-top: 4rem;
+                display: flex !important;
+                justify-content: space-between;
+                page-break-inside: avoid;
+            }
+            .signature-block {
+                text-align: center;
+                width: 40%;
+            }
+            .signature-space {
+                height: 100px;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+    </style>
+}
+
+@if (!(User.Identity.IsAuthenticated && User.IsInRole("Admin")))
+{
+    <div class="alert alert-danger text-center">Bạn không có quyền truy cập trang này.</div>
+    <a asp-controller="Movies" asp-action="Index" class="btn btn-outline-light">Quay về trang chủ</a>
+}
+else
+{
+<div class="row">
+    <div class="col-12">
+        
+        <!-- Corporate Header for Print Only -->
+        <div class="print-only print-header">
+            <div class="row">
+                <div class="col-6">
+                    <h5 class="mb-0 fw-bold">CÔNG TY CỔ PHẦN RẠP CHIẾU PHIM MOVIECINEMA</h5>
+                    <p class="small text-muted mb-0">Địa chỉ: 123 Đường Ba Tháng Hai, Quận 10, TP. Hồ Chí Minh</p>
+                    <p class="small text-muted mb-0">Điện thoại: (028) 3868 6868 | Email: contact@moviecinema.com</p>
+                </div>
+                <div class="col-6 text-end">
+                    <p class="small mb-0">Mẫu số: B02-RPT</p>
+                    <p class="small mb-0">Ngày lập báo cáo: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <h3 class="fw-bold mb-1">BÁO CÁO THỐNG KÊ HOẠT ĐỘNG & DOANH THU CHI TIẾT</h3>
+                <p class="mb-0">Thời gian báo cáo: Từ ngày @DateTime.Parse(ViewBag.StartDate).ToString("dd/MM/yyyy") đến ngày @DateTime.Parse(ViewBag.EndDate).ToString("dd/MM/yyyy")</p>
+            </div>
+        </div>
+
+        <!-- Title Header (Screen Only) -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3 no-print">
+            <div class="d-flex align-items-center gap-3">
+                <div class="metric-icon-box" style="background: linear-gradient(135deg, #11998e, #38ef7d); color: white;">
+                    <i class="bi bi-file-earmark-bar-graph"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 fw-bold text-white">Báo Cáo Thống Kê</h2>
+                    <p class="text-muted mb-0" style="font-size:0.875rem;">Phân tích tỷ lệ lấp đầy ghế, doanh thu tổng hợp và sản lượng vé bán</p>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button onclick="window.print();" class="btn btn-print-gradient py-2 px-4 rounded-pill">
+                    <i class="bi bi-printer-fill me-1"></i> In báo cáo
+                </button>
+            </div>
+        </div>
+
+        <!-- Date Range Filter Form (Screen Only) -->
+        <div class="glass-panel p-4 mb-4 rounded-4 border-glass shadow bg-dark-glass no-print">
+            <form method="get" asp-action="Reports" class="row g-3 align-items-end justify-content-center">
+                <div class="col-md-4 col-sm-6">
+                    <label for="startDate" class="form-label text-white-50 small mb-1"><i class="bi bi-calendar-event me-1"></i>Từ ngày</label>
+                    <input type="date" id="startDate" name="startDate" class="form-control bg-dark-glass text-white border-glass" value="@ViewBag.StartDate" />
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <label for="endDate" class="form-label text-white-50 small mb-1"><i class="bi bi-calendar-check me-1"></i>Đến ngày</label>
+                    <input type="date" id="endDate" name="endDate" class="form-control bg-dark-glass text-white border-glass" value="@ViewBag.EndDate" />
+                </div>
+                <div class="col-md-2 col-sm-12 d-grid">
+                    <button type="submit" class="btn btn-movie-gradient py-2 rounded-pill"><i class="bi bi-funnel-fill me-1"></i> Lọc báo cáo</button>
+                </div>
+                @if (ViewBag.StartDate != DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd") || ViewBag.EndDate != DateTime.Today.ToString("yyyy-MM-dd"))
+                {
+                    <div class="col-md-2 col-sm-12 d-grid">
+                        <a href="@Url.Action("Reports")" class="btn btn-outline-secondary py-2 rounded-pill"><i class="bi bi-arrow-counterclockwise me-1"></i> Mặc định</a>
+                    </div>
+                }
+            </form>
+        </div>
+
+        <!-- Metric Cards Row -->
+        <div class="row g-4 mb-4">
+            <!-- Consolidated Net Revenue -->
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="metric-card-premium p-4 d-flex align-items-center gap-3">
+                    <div class="metric-icon-box text-info bg-info-subtle" style="background: rgba(0, 240, 255, 0.1) !important;">
+                        <i class="bi bi-currency-dollar"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Doanh thu tổng hợp</span>
+                        <strong class="text-info fs-4">@(((double)ViewBag.NetRevenue).ToString("N0")) đ</strong>
+                    </div>
+                </div>
+            </div>
+            <!-- Tickets Sold -->
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="metric-card-premium p-4 d-flex align-items-center gap-3">
+                    <div class="metric-icon-box text-success bg-success-subtle" style="background: rgba(40, 167, 69, 0.1) !important;">
+                        <i class="bi bi-ticket-perforated"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Số lượng vé bán</span>
+                        <strong class="text-success fs-4">@ViewBag.TotalTickets vé</strong>
+                    </div>
+                </div>
+            </div>
+            <!-- Avg Occupancy Rate -->
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="metric-card-premium p-4 d-flex align-items-center gap-3">
+                    <div class="metric-icon-box text-warning bg-warning-subtle" style="background: rgba(255, 193, 7, 0.1) !important;">
+                        <i class="bi bi-percent"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Tỷ lệ lấp đầy ghế</span>
+                        <strong class="text-warning fs-4">@(((double)ViewBag.AvgOccupancyRate * 100).ToString("F2"))%</strong>
+                    </div>
+                </div>
+            </div>
+            <!-- Total Showtimes -->
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="metric-card-premium p-4 d-flex align-items-center gap-3">
+                    <div class="metric-icon-box text-danger bg-danger-subtle" style="background: rgba(255, 42, 95, 0.1) !important;">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Tổng số suất chiếu</span>
+                        <strong class="text-danger fs-4">@ViewBag.TotalShowtimes suất</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tables Row 1: Movies & Cinemas -->
+        <div class="row g-4 mb-4">
+            
+            <!-- Movie sales / occupancy table -->
+            <div class="col-lg-7">
+                <div class="glass-panel p-4 border-glass rounded-4 bg-dark-glass h-100">
+                    <h5 class="text-white fw-bold mb-3"><i class="bi bi-film text-danger me-2"></i>Thống kê hiệu suất theo Phim</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover text-white align-middle mb-0">
+                            <thead>
+                                <tr class="text-white-50 border-secondary small">
+                                    <th scope="col">Tên Phim</th>
+                                    <th scope="col" class="text-center">Số suất chiếu</th>
+                                    <th scope="col" class="text-center">Vé bán ra</th>
+                                    <th scope="col" class="text-end">Doanh thu</th>
+                                    <th scope="col" style="width: 25%;">Tỷ lệ lấp đầy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.MovieReports == null || ViewBag.MovieReports.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted small py-4">Không có dữ liệu suất chiếu trong khoảng thời gian này.</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var item in ViewBag.MovieReports)
+                                    {
+                                        double occ = (double)item.OccupancyRate * 100;
+                                        <tr class="border-secondary small">
+                                            <td class="fw-bold">@item.MovieName</td>
+                                            <td class="text-center text-white-50">@item.ShowtimesCount</td>
+                                            <td class="text-center text-white-50">@item.TicketsSold / @item.TotalCapacity</td>
+                                            <td class="text-end text-info fw-bold">@(((double)item.Revenue).ToString("N0")) đ</td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                                        <div class="progress-bar progress-bar-glow @(occ >= 75 ? "bg-success" : (occ >= 40 ? "bg-warning" : "bg-danger"))" 
+                                                             role="progressbar" 
+                                                             style="width: @occ%" 
+                                                             aria-valuenow="@occ" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100"></div>
+                                                    </div>
+                                                    <span class="small font-monospace text-white-50" style="min-width: 45px;">@occ.ToString("F1")%</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cinema branch occupancy table -->
+            <div class="col-lg-5">
+                <div class="glass-panel p-4 border-glass rounded-4 bg-dark-glass h-100">
+                    <h5 class="text-white fw-bold mb-3"><i class="bi bi-building-gear text-success me-2"></i>Hiệu suất theo Chi nhánh Rạp</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover text-white align-middle mb-0">
+                            <thead>
+                                <tr class="text-white-50 border-secondary small">
+                                    <th scope="col">Tên Rạp</th>
+                                    <th scope="col" class="text-center">Số suất</th>
+                                    <th scope="col" class="text-center">Vé / Ghế</th>
+                                    <th scope="col" style="width: 30%;">Tỷ lệ lấp đầy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.CinemaReports == null || ViewBag.CinemaReports.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted small py-4">Không có dữ liệu chi nhánh trong khoảng thời gian này.</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var item in ViewBag.CinemaReports)
+                                    {
+                                        double occ = (double)item.OccupancyRate * 100;
+                                        <tr class="border-secondary small">
+                                            <td class="fw-bold">@item.CinemaName</td>
+                                            <td class="text-center text-white-50">@item.ShowtimesCount</td>
+                                            <td class="text-center text-white-50">@item.TicketsSold / @item.TotalCapacity</td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                                        <div class="progress-bar progress-bar-glow @(occ >= 75 ? "bg-success" : (occ >= 40 ? "bg-warning" : "bg-danger"))" 
+                                                             role="progressbar" 
+                                                             style="width: @occ%" 
+                                                             aria-valuenow="@occ" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100"></div>
+                                                    </div>
+                                                    <span class="small font-monospace text-white-50">@occ.ToString("F1")%</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Table Row 2: Showtime detailed list (With page break for print) -->
+        <div class="page-break"></div>
+        
+        <div class="glass-panel p-4 border-glass rounded-4 bg-dark-glass mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h5 class="text-white fw-bold mb-0"><i class="bi bi-list-columns-reverse text-warning me-2"></i>Danh sách chi tiết hiệu suất suất chiếu</h5>
+                <!-- In-page Search Bar (Screen Only) -->
+                <div class="no-print" style="width: 250px;">
+                    <input type="text" id="showtimeSearch" onkeyup="filterShowtimesTable()" class="form-control form-control-sm search-input-glass" placeholder="Tìm tên phim hoặc rạp..." />
+                </div>
+            </div>
+            
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                <table class="table table-hover text-white align-middle mb-0" id="showtimesDetailTable">
+                    <thead>
+                        <tr class="text-white-50 border-secondary small">
+                            <th scope="col" class="text-center">Mã Suất</th>
+                            <th scope="col">Phim</th>
+                            <th scope="col">Chi Nhánh Rạp</th>
+                            <th scope="col">Phòng Chiếu</th>
+                            <th scope="col" class="text-center">Giờ Chiếu</th>
+                            <th scope="col" class="text-center">Ghế Đã Đặt / Tổng Ghế</th>
+                            <th scope="col" class="text-center" style="width: 15%;">Tỷ lệ lấp đầy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (ViewBag.ShowtimeDetails == null || ViewBag.ShowtimeDetails.Count == 0)
+                        {
+                            <tr id="noDataRow">
+                                <td colspan="7" class="text-center text-muted small py-4">Không tìm thấy suất chiếu phù hợp trong khoảng thời gian này.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in ViewBag.ShowtimeDetails)
+                            {
+                                double occ = (double)item.OccupancyRate * 100;
+                                <tr class="border-secondary small showtime-row">
+                                    <td class="text-center text-white-50">#@item.ShowtimeId</td>
+                                    <td class="fw-bold movie-search-name">@item.MovieName</td>
+                                    <td class="text-white-50 cinema-search-name">@item.CinemaName</td>
+                                    <td class="text-white-50">@item.RoomName</td>
+                                    <td class="text-center text-white-50">@(((DateTime)item.StartTime).ToString("dd/MM/yyyy HH:mm"))</td>
+                                    <td class="text-center text-white-50">@item.Booked / @item.Capacity</td>
+                                    <td class="text-center">
+                                        <span class="badge @(occ >= 75 ? "bg-success-subtle text-success" : (occ >= 40 ? "bg-warning-subtle text-warning" : "bg-danger-subtle text-danger")) rounded-pill px-2 py-1 font-monospace">
+                                            @occ.ToString("F1")%
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Corporate Signatures block for Print Only -->
+        <div class="print-only print-signatures">
+            <div class="signature-block">
+                <p class="fw-bold">NGƯỜI LẬP BIỂU</p>
+                <p class="small text-muted">(Ký, ghi rõ họ tên)</p>
+                <div class="signature-space"></div>
+                <p class="fw-bold">_________________________</p>
+            </div>
+            <div class="signature-block">
+                <p class="fw-bold">GIÁM ĐỐC DUYỆT</p>
+                <p class="small text-muted">(Ký, đóng dấu và ghi rõ họ tên)</p>
+                <div class="signature-space"></div>
+                <p class="fw-bold">_________________________</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+}
+
+@section Scripts {
+    <script>
+        function filterShowtimesTable() {
+            var input = document.getElementById("showtimeSearch");
+            var filter = input.value.toUpperCase();
+            var table = document.getElementById("showtimesDetailTable");
+            var trs = table.getElementsByClassName("showtime-row");
+            var countVisible = 0;
+
+            for (var i = 0; i < trs.length; i++) {
+                var movieTd = trs[i].getElementsByClassName("movie-search-name")[0];
+                var cinemaTd = trs[i].getElementsByClassName("cinema-search-name")[0];
+                if (movieTd || cinemaTd) {
+                    var movieText = movieTd.textContent || movieTd.innerText;
+                    var cinemaText = cinemaTd.textContent || cinemaTd.innerText;
+                    if (movieText.toUpperCase().indexOf(filter) > -1 || cinemaText.toUpperCase().indexOf(filter) > -1) {
+                        trs[i].style.display = "";
+                        countVisible++;
+                    } else {
+                        trs[i].style.display = "none";
+                    }
+                }
+            }
+
+            // Show or hide "No data" message row if no rows are visible
+            var noDataRow = document.getElementById("noDataRow");
+            if (countVisible === 0) {
+                if (!noDataRow) {
+                    var tbody = table.getElementsByTagName("tbody")[0];
+                    var newRow = tbody.insertRow();
+                    newRow.id = "noDataRow";
+                    var newCell = newRow.insertCell(0);
+                    newCell.colSpan = 7;
+                    newCell.className = "text-center text-muted small py-4";
+                    newCell.innerHTML = "Không tìm thấy suất chiếu nào phù hợp.";
+                } else {
+                    noDataRow.style.display = "";
+                }
+            } else {
+                if (noDataRow) {
+                    noDataRow.style.display = "none";
+                }
+            }
+        }
+    </script>
+}

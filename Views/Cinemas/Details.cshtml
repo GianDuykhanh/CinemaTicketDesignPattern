@@ -1,0 +1,94 @@
+@model Cinema
+
+@{
+    ViewData["Title"] = "Details of the cinema";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-camera-reels-fill text-info me-2"></i>Cinema Details</h1>
+                <p class="text-muted mb-0 small">Detailed information about the theater, location facilities, and technology</p>
+            </div>
+        </div>
+
+        <!-- Glass Profile Card -->
+        <div class="cinema-profile-glass-card">
+            <div class="row g-5">
+
+                <!-- Left Column: Logo and Name Card -->
+                <div class="col-12 col-md-5 col-lg-4">
+                    <div class="cinema-profile-sidebar">
+                        <div class="cinema-profile-picture-ring">
+                            <img class="cinema-profile-picture-img" src="@Model.Logo" alt="@Model.Name" onerror="this.onerror=null;this.src='/images/default-logo.png';" />
+                        </div>
+                        <h2 class="h4 fw-bold text-white mb-2">@Model.Name</h2>
+
+                        <!-- Tech Badges -->
+                        <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+                            <span class="tech-badge tech-imax"><i class="bi bi-display"></i> IMAX</span>
+                            <span class="tech-badge tech-dolby"><i class="bi bi-volume-up-fill"></i> Dolby</span>
+                        </div>
+                        <div class="text-muted small mt-2">ID Reference: #@Model.Id</div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Description & details stats -->
+                <div class="col-12 col-md-7 col-lg-8 d-flex flex-column justify-content-between">
+                    <div>
+                        <!-- Description Section -->
+                        <h3 class="cinema-bio-title"><i class="bi bi-info-circle"></i>Description</h3>
+                        <p class="cinema-bio-text">@Model.Description</p>
+
+                        <!-- Extra Details Stats Grid -->
+                        <div class="row g-3 mt-4">
+                            <div class="col-6">
+                                <div class="cinema-info-stat-box">
+                                    <div class="cinema-info-stat-icon">
+                                        <i class="bi bi-shield-check"></i>
+                                    </div>
+                                    <div>
+                                        <div class="info-stat-label">Theater Status</div>
+                                        <div class="info-stat-value text-success">Active</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="cinema-info-stat-box">
+                                    <div class="cinema-info-stat-icon">
+                                        <i class="bi bi-display-fill"></i>
+                                    </div>
+                                    <div>
+                                        <div class="info-stat-label">Projection Tech</div>
+                                        <div class="info-stat-value">Laser Projection</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Footer -->
+                    <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-5">
+                        <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                            <i class="bi bi-arrow-left-circle me-2"></i>Back to List
+                        </a>
+                        @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                        {
+                            <a class="btn btn-cinema-gradient px-5 py-2" asp-action="Edit" asp-route-id="@Model.Id" style="width: auto;">
+                                <i class="bi bi-pencil-square me-2"></i>Edit Cinema
+                            </a>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>

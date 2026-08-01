@@ -1,0 +1,316 @@
+@model IEnumerable<IGrouping<string, Seat>>
+
+@{
+    ViewData["Title"] = "Manage Seats - " + ViewBag.Room?.Name;
+    var room = ViewBag.Room as CinemaRoom;
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-11">
+
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" asp-route-roomId="@ViewBag.RoomId" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-gear-fill text-info me-2"></i>Manage Seats</h1>
+                <p class="text-muted mb-0 small">Toggle availability and edit seats for @room?.Name</p>
+            </div>
+        </div>
+
+        @if (Model != null && Model.Any())
+        {
+            <!-- Bulk Action Bar -->
+            <div class="glass-panel p-3 mb-4 d-flex align-items-center gap-3 flex-wrap" style="background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+                <div class="d-flex align-items-center gap-2">
+                    <input type="checkbox" id="selectAll" class="form-check-input" style="width:1.1em;height:1.1em;cursor:pointer;" />
+                    <label for="selectAll" class="text-white fw-semibold mb-0" style="cursor:pointer; font-size:0.9rem;">Select All</label>
+                    <span id="selectedCount" class="badge bg-info ms-2" style="font-size:0.75rem; display:none;">0 selected</span>
+                </div>
+                <div class="ms-auto d-flex gap-2 flex-wrap">
+                    <!-- Bulk Edit Seat Type -->
+                    <form asp-action="BulkEdit" method="post" id="bulkEditForm" class="d-flex gap-2 align-items-center">
+                        <input type="hidden" name="roomId" value="@ViewBag.RoomId" />
+                        <input type="hidden" name="selectedSeats" id="bulkEditSeats" value="" />
+                        <select name="seatType" class="form-select form-select-sm" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 10px; width: auto; font-size:0.85rem; min-width:130px;">
+                            <option value="" disabled selected>Change Type...</option>
+                            <option value="1">Standard</option>
+                            <option value="2">VIP</option>
+                            <option value="3">Couple</option>
+                            <option value="4">Disabled</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-warning px-3" onclick="return submitBulkEdit()">
+                            <i class="bi bi-pencil-square me-1"></i>Apply Type
+                        </button>
+                    </form>
+
+                    <!-- Bulk Toggle Availability -->
+                    <form asp-action="BulkToggle" method="post" id="bulkToggleForm" class="d-flex gap-2 align-items-center">
+                        <input type="hidden" name="roomId" value="@ViewBag.RoomId" />
+                        <input type="hidden" name="selectedSeats" id="bulkToggleSeats" value="" />
+                        <button type="submit" class="btn btn-sm btn-outline-success px-3" onclick="return submitBulkToggle()">
+                            <i class="bi bi-toggle-on me-1"></i>Toggle Availability
+                        </button>
+                    </form>
+
+                    <!-- Bulk Delete -->
+                    <form asp-action="BulkDelete" method="post" id="bulkDeleteForm" class="d-flex gap-2 align-items-center">
+                        <input type="hidden" name="roomId" value="@ViewBag.RoomId" />
+                        <input type="hidden" name="selectedSeats" id="bulkDeleteSeats" value="" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger px-3" onclick="return submitBulkDelete()">
+                            <i class="bi bi-trash me-1"></i>Delete Selected
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="d-flex flex-wrap gap-3 mb-4 justify-content-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span style="width:20px;height:20px;background:#22c55e;border-radius:4px;"></span>
+                    <span class="small text-muted">Available</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span style="width:20px;height:20px;background:rgba(239,68,68,0.3);border-radius:4px;border:2px dashed #ef4444;"></span>
+                    <span class="small text-muted">Unavailable</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span style="width:20px;height:20px;background:#22c55e;border-radius:4px;border:2px solid #4ade80;"></span>
+                    <span class="small text-muted">Selected</span>
+                </div>
+            </div>
+        }
+
+        <!-- Screen -->
+        <div class="text-center mb-4">
+            <div style="width: 70%; max-width: 500px; margin: 0 auto; background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%); border-radius: 50% / 20px; padding: 8px 20px; font-size: 0.7rem; letter-spacing: 4px; color: rgba(255,255,255,0.6); text-transform: uppercase; font-weight: 700;">
+                Screen
+            </div>
+        </div>
+
+        <!-- Seat Grid -->
+        @if (Model == null || !Model.Any())
+        {
+            <div class="glass-panel p-5 text-center" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px;">
+                <i class="bi bi-grid-3x3 text-muted" style="font-size: 4rem;"></i>
+                <h4 class="text-white mt-3">No seats to manage</h4>
+                <a class="btn btn-premium-gradient mt-3" asp-action="Create" asp-route-roomId="@ViewBag.RoomId">
+                    <i class="bi bi-plus-circle me-2"></i>Generate Seats
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="glass-panel p-4" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px;">
+                <div class="d-flex flex-column align-items-center gap-3">
+                    @foreach (var rowGroup in Model)
+                    {
+                        <div class="d-flex align-items-center gap-2 w-100 justify-content-center">
+                            <span class="text-muted fw-bold" style="width: 28px; font-size: 0.8rem; text-align: right;">@rowGroup.Key</span>
+                            <div class="d-flex gap-1 flex-wrap justify-content-center">
+                                @foreach (var seat in rowGroup.OrderBy(s => s.Number))
+                                {
+                                    var seatColor = seat.SeatType switch
+                                    {
+                                        SeatType.VIP => "#fbbf24",
+                                        SeatType.Couple => "#ec4899",
+                                        SeatType.Disabled => "#6c757d",
+                                        _ => "#64748b"
+                                    };
+
+                                    var availableColor = seat.IsAvailable ? "#22c55e" : "rgba(239,68,68,0.3)";
+                                    var unavailableBorder = !seat.IsAvailable ? "border: 2px dashed #ef4444 !important;" : "";
+
+                                    <div class="seat-item position-relative"
+                                         data-seat-id="@seat.Id"
+                                         data-row="@seat.Row"
+                                         data-number="@seat.Number"
+                                         data-type="@((int)seat.SeatType)"
+                                         data-available="@seat.IsAvailable"
+                                         style="width: 40px; cursor: pointer;"
+                                         title="Row @seat.Row - Seat @seat.Number - @seat.SeatType">
+
+                                        <!-- Seat checkbox (hidden, controlled by click on seat) -->
+                                        <input type="checkbox"
+                                               class="seat-checkbox form-check-input position-absolute"
+                                               data-seat-id="@seat.Id"
+                                               style="top: -6px; right: -6px; width: 14px; height: 14px; cursor: pointer; z-index: 5; opacity: 0; transition: opacity 0.2s; pointer-events: none;" />
+
+                                        <div class="d-flex flex-column align-items-center gap-0">
+                                            <div class="seat-box"
+                                                 style="width: 32px; height: 32px; background: @availableColor; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); @unavailableBorder; transition: all 0.2s;"
+                                                 onclick="handleSeatClick(@seat.Id, event)"
+                                                 onmouseenter="showActions(this)"
+                                                 onmouseleave="hideActions(this)">
+                                                @seat.Number
+                                            </div>
+                                            <span style="font-size: 0.5rem; color: @seatColor; font-weight: 700;">@seat.SeatType.ToString().ToUpper().Substring(0, 1)</span>
+                                        </div>
+
+                                        <!-- Edit/Delete actions on hover -->
+                                        <div class="seat-actions position-absolute top-0 start-100 translate-middle d-none" style="z-index: 10; white-space: nowrap;">
+                                            <a class="btn btn-sm btn-secondary px-1 py-0 me-1" asp-action="Edit" asp-route-id="@seat.Id" asp-route-roomId="@ViewBag.RoomId" title="Edit">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <a class="btn btn-sm btn-danger px-1 py-0" asp-action="Delete" asp-route-id="@seat.Id" asp-route-roomId="@ViewBag.RoomId" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="row g-3 mt-3 justify-content-center">
+                <div class="col-auto">
+                    <div class="glass-panel px-4 py-3 text-center" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+                        <div class="text-info fw-bold" style="font-size: 1.5rem;">@Model.SelectMany(r => r).Count()</div>
+                        <div class="small text-muted">Total Seats</div>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="glass-panel px-4 py-3 text-center" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+                        <div class="text-success fw-bold" style="font-size: 1.5rem;">@Model.SelectMany(r => r).Count(s => s.IsAvailable)</div>
+                        <div class="small text-muted">Available</div>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="glass-panel px-4 py-3 text-center" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+                        <div class="text-danger fw-bold" style="font-size: 1.5rem;">@Model.SelectMany(r => r).Count(s => !s.IsAvailable)</div>
+                        <div class="small text-muted">Unavailable</div>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let selectedSeats = new Set();
+
+        function updateSelectedCount() {
+            var count = selectedSeats.size;
+            var badge = document.getElementById('selectedCount');
+            if (badge) {
+                if (count > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = count + ' selected';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+            updateBulkButtons();
+        }
+
+        function updateBulkButtons() {
+            var hasSelection = selectedSeats.size > 0;
+            document.querySelectorAll('#bulkEditForm button, #bulkToggleForm button, #bulkDeleteForm button').forEach(function(btn) {
+                btn.disabled = !hasSelection;
+            });
+        }
+
+        function toggleSeatSelection(seatId, seatBox) {
+            if (selectedSeats.has(seatId)) {
+                selectedSeats.delete(seatId);
+                seatBox.style.boxShadow = '';
+                seatBox.style.borderColor = '';
+                seatBox.style.outline = '';
+            } else {
+                selectedSeats.add(seatId);
+                seatBox.style.boxShadow = '0 0 0 3px #4ade80, 0 2px 8px rgba(0,0,0,0.3)';
+                seatBox.style.borderColor = '#4ade80';
+                seatBox.style.outline = '2px solid #4ade80';
+            }
+            updateSelectedCount();
+        }
+
+        function handleSeatClick(seatId, event) {
+            var seatItem = document.querySelector(`[data-seat-id="${seatId}"]`);
+            var seatBox = seatItem.querySelector('.seat-box');
+            toggleSeatSelection(seatId, seatBox);
+
+            var checkbox = seatItem.querySelector('.seat-checkbox');
+            checkbox.checked = selectedSeats.has(seatId);
+        }
+
+        // Select all
+        document.getElementById('selectAll')?.addEventListener('change', function() {
+            var allCheckboxes = document.querySelectorAll('.seat-checkbox');
+            if (this.checked) {
+                allCheckboxes.forEach(function(cb) {
+                    var seatId = parseInt(cb.dataset.seatId);
+                    selectedSeats.add(seatId);
+                    cb.checked = true;
+                    var seatItem = cb.closest('.seat-item');
+                    var seatBox = seatItem.querySelector('.seat-box');
+                    seatBox.style.boxShadow = '0 0 0 3px #4ade80, 0 2px 8px rgba(0,0,0,0.3)';
+                    seatBox.style.borderColor = '#4ade80';
+                    seatBox.style.outline = '2px solid #4ade80';
+                });
+            } else {
+                selectedSeats.clear();
+                allCheckboxes.forEach(function(cb) {
+                    cb.checked = false;
+                    var seatItem = cb.closest('.seat-item');
+                    var seatBox = seatItem.querySelector('.seat-box');
+                    seatBox.style.boxShadow = '';
+                    seatBox.style.borderColor = '';
+                    seatBox.style.outline = '';
+                });
+            }
+            updateSelectedCount();
+        });
+
+        function submitBulkEdit() {
+            if (selectedSeats.size === 0) {
+                alert('Please select at least one seat.');
+                return false;
+            }
+            var seatType = document.querySelector('#bulkEditForm select[name="seatType"]').value;
+            if (!seatType) {
+                alert('Please select a seat type.');
+                return false;
+            }
+            document.getElementById('bulkEditSeats').value = Array.from(selectedSeats).join(',');
+            return true;
+        }
+
+        function submitBulkToggle() {
+            if (selectedSeats.size === 0) {
+                alert('Please select at least one seat.');
+                return false;
+            }
+            document.getElementById('bulkToggleSeats').value = Array.from(selectedSeats).join(',');
+            return true;
+        }
+
+        function submitBulkDelete() {
+            if (selectedSeats.size === 0) {
+                alert('Please select at least one seat.');
+                return false;
+            }
+            return confirm('Delete ' + selectedSeats.size + ' selected seat(s)? This cannot be undone.');
+        }
+
+        function showActions(el) {
+            if (selectedSeats.size > 0) return;
+            var actions = el.closest('.seat-item').querySelector('.seat-actions');
+            if (actions) actions.classList.remove('d-none');
+        }
+
+        function hideActions(el) {
+            var actions = el.closest('.seat-item').querySelector('.seat-actions');
+            if (actions) actions.classList.add('d-none');
+        }
+
+        // Initial state
+        updateBulkButtons();
+    </script>
+}

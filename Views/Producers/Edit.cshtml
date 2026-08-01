@@ -1,0 +1,105 @@
+@model Producer
+
+@{
+    ViewData["Title"] = "Update producer";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-pencil-square text-info me-2"></i>Update Producer Profile</h1>
+                <p class="text-muted mb-0 small">Modify the producer profile information in the directory</p>
+            </div>
+        </div>
+
+        <!-- Glass card Form -->
+        <div class="form-glass-card">
+            <form asp-action="Edit" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+                
+                <!-- Hidden inputs -->
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="ProfilePictureURL" id="currentPictureUrl" />
+
+                <div class="row g-4">
+                    <!-- Left: Profile Picture Live Preview -->
+                    <div class="col-12 col-md-4">
+                        <div class="preview-card">
+                            <div class="avatar-preview-ring" id="previewRing">
+                                <img class="avatar-preview-img" id="ProfilePicturePreview" src="@Model.ProfilePictureURL" alt="Avatar Preview" onerror="this.onerror=null;this.src='/images/default-avatar.png';" />
+                            </div>
+                            <h4 class="text-white h6 fw-bold mb-1">Live Profile Preview</h4>
+                            <p class="text-muted small mb-0" style="line-height: 1.4;">Shows current photo unless a new file is uploaded</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Input Fields -->
+                    <div class="col-12 col-md-8 d-flex flex-column gap-3">
+                        <div class="form-group">
+                            <label class="form-label-premium"><i class="bi bi-image"></i>Update Profile Photo</label>
+                            <input type="file" name="profilePicture" id="profilePictureFile" class="form-control form-control-glass" accept="image/*" />
+                            <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Leave empty to keep the current profile picture.</div>
+                            <span asp-validation-for="ProfilePictureURL" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="FullName" class="form-label-premium"><i class="bi bi-person-fill"></i>Full Name</label>
+                            <input asp-for="FullName" class="form-control form-control-glass" placeholder="Enter producer's full name" autocomplete="off" />
+                            <span asp-validation-for="FullName" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Bio" class="form-label-premium"><i class="bi bi-file-earmark-person-fill"></i>Biography</label>
+                            <textarea asp-for="Bio" class="form-control form-control-glass" placeholder="Enter the biography details of the producer..."></textarea>
+                            <span asp-validation-for="Bio" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <!-- Buttons Row -->
+                        <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-3">
+                            <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                                <i class="bi bi-list-stars me-2"></i>Show All
+                            </a>
+                            <button type="submit" class="btn btn-premium-gradient px-5 py-2" style="width: auto;">
+                                <i class="bi bi-check-circle-fill me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Handle file upload live preview
+            $("#profilePictureFile").on("change", function () {
+                var preview = document.getElementById('ProfilePicturePreview');
+                var ring = document.getElementById('previewRing');
+                var file = this.files[0];
+                
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        preview.src = e.target.result;
+                        ring.style.boxShadow = "0 10px 30px rgba(6, 182, 212, 0.6)";
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    // Revert to current picture url
+                    var currentUrl = $("#currentPictureUrl").val();
+                    preview.src = currentUrl ? currentUrl : "/images/default-avatar.png";
+                    ring.style.boxShadow = "0 10px 30px rgba(6, 182, 212, 0.25)";
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,103 @@
+@model IEnumerable<Actor>
+
+@{
+    ViewData["Title"] = "Actors";
+}
+
+<!-- Header -->
+<div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+    <div>
+        <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-person-badge-fill text-info me-2"></i>Actors</h1>
+        <p class="text-muted mb-0 small">Explore the talented cast in our movie directory</p>
+    </div>
+    @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+    {
+        <a class="btn btn-premium-gradient ms-auto px-4 py-2" asp-action="Create" style="width: auto;">
+            <i class="bi bi-plus-circle-fill me-2"></i>Add Actor
+        </a>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <i class="bi bi-person-badge text-muted" style="font-size: 4rem;"></i>
+        <h3 class="h5 text-muted mt-3">No actors found</h3>
+        <p class="text-muted">Start by adding your first actor to the directory.</p>
+        @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+        {
+            <a class="btn btn-premium-gradient mt-3" asp-action="Create">
+                <i class="bi bi-plus-circle-fill me-2"></i>Add Actor
+            </a>
+        }
+    </div>
+}
+else
+{
+    <!-- Search & Filter Bar -->
+    <div class="d-flex flex-wrap gap-3 mb-4 align-items-center">
+        <form asp-action="Index" method="get" class="d-flex gap-2 flex-grow-1" style="max-width: 480px;">
+            <div class="search-box-container w-100 flex-grow-1">
+                <input name="searchString" type="text" class="form-control" placeholder="Search actors by name..." aria-label="Search actors" value="@ViewData["CurrentFilter"]" />
+                <button class="search-btn" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty((string?)ViewData["CurrentFilter"]))
+            {
+                <a class="btn btn-premium-outline px-3" asp-action="Index" style="width: auto;">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            }
+        </form>
+        <span class="text-muted small ms-auto">
+            <i class="bi bi-people-fill me-1 text-info"></i>@Model.Count() actor@(Model.Count() == 1 ? "" : "s")
+        </span>
+    </div>
+
+    <!-- Actor Cards Grid -->
+    <div class="row g-4">
+        @foreach (var item in Model)
+        {
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                <div class="actor-card">
+                    <!-- Profile Picture -->
+                    <div class="actor-card-header">
+                        <div class="actor-picture-ring">
+                            <img class="actor-picture-img" src="@item.ProfilePictureURL" alt="@item.FullName"
+                                 onerror="this.onerror=null;this.src='/images/default-avatar.png';" />
+                        </div>
+                        <div class="actor-card-overlay">
+                            <a class="actor-overlay-btn" asp-action="Details" asp-route-id="@item.Id" title="View Details">
+                                <i class="bi bi-eye-fill"></i>
+                            </a>
+                            @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                            {
+                                <a class="actor-overlay-btn" asp-action="Edit" asp-route-id="@item.Id" title="Edit">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <a class="actor-overlay-btn actor-overlay-btn-danger" asp-action="Delete" asp-route-id="@item.Id" title="Delete">
+                                    <i class="bi bi-trash3-fill"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="actor-card-body">
+                        <h3 class="actor-card-name">@item.FullName</h3>
+                        <p class="actor-card-bio">@item.Bio</p>
+
+                        <div class="actor-card-footer">
+                            <a class="btn btn-sm btn-actor-details w-100" asp-action="Details" asp-route-id="@item.Id">
+                                <i class="bi bi-person-badge-fill me-1"></i>View Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@await Html.PartialAsync("_CreateItem", "Actors")

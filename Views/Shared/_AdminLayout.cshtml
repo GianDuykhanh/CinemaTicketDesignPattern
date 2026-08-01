@@ -1,0 +1,240 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject UserManager<ApplicationUser> UserManager
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin Dashboard</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/movieCinema.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="admin-body">
+    <!-- Sidebar -->
+    <div class="admin-sidebar">
+        <div class="admin-logo-section">
+            <a asp-controller="Orders" asp-action="Dashboard" class="text-decoration-none d-flex align-items-center gap-2">
+                <div class="admin-logo-box">
+                    <i class="bi bi-ticket-perforated-fill"></i>
+                </div>
+                <div class="admin-brand-text">
+                    <span class="admin-brand-name">MovieCinema</span>
+                    <span class="admin-brand-sub">
+                        <i class="bi bi-shield-fill-check me-1"></i>Admin Panel
+                    </span>
+                </div>
+            </a>
+        </div>
+
+        <div class="sidebar-section-title">Quản lý</div>
+
+        @{
+            var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+            var action = ViewContext.RouteData.Values["action"]?.ToString();
+            var user = await UserManager.GetUserAsync(User);
+            var userName = UserManager.GetUserName(User);
+            var userFullName = user?.FullName ?? userName;
+        }
+
+        <ul class="admin-nav">
+            <li class="admin-nav-item @(controller == "Orders" && action == "Dashboard" ? "active" : "")">
+                <a asp-controller="Orders" asp-action="Dashboard">
+                    <div class="admin-nav-icon icon-dashboard">
+                        <i class="bi bi-speedometer2"></i>
+                    </div>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            <div class="sidebar-divider">
+                <span>Nội dung</span>
+            </div>
+
+            <li class="admin-nav-item @(controller == "Cinemas" ? "active" : "")">
+                <a asp-controller="Cinemas" asp-action="Index">
+                    <div class="admin-nav-icon icon-cinemas">
+                        <i class="bi bi-camera-reels-fill"></i>
+                    </div>
+                    <span>Cinemas</span>
+                </a>
+            </li>
+            <li class="admin-nav-item @(controller == "Categories" ? "active" : "")">
+                <a asp-controller="Categories" asp-action="Index">
+                    <div class="admin-nav-icon icon-categories">
+                        <i class="bi bi-tags-fill"></i>
+                    </div>
+                    <span>Categories</span>
+                </a>
+            </li>
+            <li class="admin-nav-item @(controller == "Producers" ? "active" : "")">
+                <a asp-controller="Producers" asp-action="Index">
+                    <div class="admin-nav-icon icon-producers">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <span>Producers</span>
+                </a>
+            </li>
+            <li class="admin-nav-item @(controller == "Actors" ? "active" : "")">
+                <a asp-controller="Actors" asp-action="Index">
+                    <div class="admin-nav-icon icon-actors">
+                        <i class="bi bi-person-badge-fill"></i>
+                    </div>
+                    <span>Actors</span>
+                </a>
+            </li>
+            <li class="admin-nav-item @(controller == "Showtimes" && action != "Schedule" ? "active" : "")">
+                <a asp-controller="Showtimes" asp-action="Index">
+                    <div class="admin-nav-icon icon-showtimes">
+                        <i class="bi bi-calendar3"></i>
+                    </div>
+                    <span>Showtimes</span>
+                </a>
+            </li>
+
+            <div class="sidebar-divider">
+                <span>Hoạt động</span>
+            </div>
+
+            <li class="admin-nav-item @(controller == "Vouchers" ? "active" : "")">
+                <a asp-controller="Vouchers" asp-action="Index">
+                    <div class="admin-nav-icon icon-vouchers">
+                        <i class="bi bi-gift-fill"></i>
+                    </div>
+                    <span>Vouchers</span>
+                </a>
+            </li>
+            <li class="admin-nav-item @(controller == "CinemaRooms" ? "active" : "")">
+                <a asp-controller="CinemaRooms" asp-action="Index">
+                    <div class="admin-nav-icon icon-rooms">
+                        <i class="bi bi-door-open-fill"></i>
+                    </div>
+                    <span>Rooms</span>
+                </a>
+            </li>
+            <li class="admin-nav-item @(controller == "Orders" && action == "ManageBookings" ? "active" : "")">
+                <a asp-controller="Orders" asp-action="ManageBookings">
+                    <div class="admin-nav-icon icon-bookings">
+                        <i class="bi bi-person-gear"></i>
+                    </div>
+                    <span>Bookings</span>
+                </a>
+            </li>
+            <li class="admin-nav-item @(controller == "Orders" && action == "Revenue" ? "active" : "")">
+                <a asp-controller="Orders" asp-action="Revenue">
+                    <div class="admin-nav-icon icon-revenue">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <span>Revenue</span>
+                </a>
+            </li>
+            <li class="admin-nav-item @(controller == "Orders" && action == "Reports" ? "active" : "")">
+                <a asp-controller="Orders" asp-action="Reports">
+                    <div class="admin-nav-icon icon-reports">
+                        <i class="bi bi-file-earmark-bar-graph"></i>
+                    </div>
+                    <span>Reports</span>
+                </a>
+            </li>
+
+            <div class="sidebar-divider sidebar-divider-public">
+                <span>Trang công khai</span>
+            </div>
+
+            <li class="admin-nav-item @(controller == "Movies" ? "active" : "")">
+                <a asp-controller="Movies" asp-action="Index">
+                    <div class="admin-nav-icon icon-public">
+                        <i class="bi bi-film"></i>
+                    </div>
+                    <span>Movies</span>
+                </a>
+            </li>
+            <li class="admin-nav-item @(controller == "Showtimes" && action == "Schedule" ? "active" : "")">
+                <a asp-controller="Showtimes" asp-action="Schedule">
+                    <div class="admin-nav-icon icon-public">
+                        <i class="bi bi-calendar3-range"></i>
+                    </div>
+                    <span>Lịch chiếu</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div class="admin-main-wrapper">
+        <!-- Top Navbar -->
+        <div class="admin-top-nav">
+            <div class="top-nav-links">
+                <a class="top-nav-link @(controller == "Movies" ? "active" : "")" asp-controller="Movies" asp-action="Index">
+                    <i class="bi bi-film me-1"></i>Movies
+                </a>
+                <a class="top-nav-link @(action == "Schedule" ? "active" : "")" asp-controller="Showtimes" asp-action="Schedule">
+                    <i class="bi bi-calendar3 me-1"></i>Lịch chiếu
+                </a>
+            </div>
+
+            <!-- Profile Dropdown -->
+            <div class="d-flex align-items-center gap-3">
+                <!-- Admin badge -->
+                <span class="top-nav-admin-badge">
+                    <i class="bi bi-shield-fill-check"></i>Admin
+                </span>
+
+                <div class="dropdown">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle rounded-pill px-3 py-1.5" type="button" id="admin-profile-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle me-1"></i> @userFullName
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark dropdown-menu-custom" aria-labelledby="admin-profile-btn">
+                        <li class="px-3 py-2 text-muted small border-bottom border-secondary mb-1">
+                            <i class="bi bi-envelope me-1"></i>@(user?.Email ?? "")
+                        </li>
+                        <li>
+                            <a class="dropdown-item dropdown-item-custom" asp-controller="Orders" asp-action="Index">
+                                <i class="bi bi-clock-history me-2"></i>Lịch sử giao dịch
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form asp-controller="Account" asp-action="Logout" class="m-0">
+                                <button type="submit" class="dropdown-item dropdown-item-custom text-danger">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Body -->
+        <div class="admin-content-body">
+            @RenderBody()
+        </div>
+
+        <!-- Footer -->
+        <footer class="admin-footer">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                <div>
+                    <span class="fw-bold text-white me-2"><i class="bi bi-ticket-perforated-fill text-info me-1"></i>MovieCinema</span> &copy; 2026 - All rights reserved.
+                </div>
+                <div class="d-flex gap-3">
+                    <a href="#" class="text-muted small"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="text-muted small"><i class="bi bi-instagram"></i></a>
+                    <a href="#" class="text-muted small"><i class="bi bi-twitter-x"></i></a>
+                    <a href="#" class="text-muted small"><i class="bi bi-youtube"></i></a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

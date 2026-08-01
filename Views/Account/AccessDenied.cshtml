@@ -1,0 +1,85 @@
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<style>
+    .bg-dark-glass {
+        background: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(10px);
+    }
+    .border-glass {
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        backdrop-filter: blur(15px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        transition: transform 0.3s ease;
+    }
+    .glass-card:hover {
+        transform: translateY(-2px);
+    }
+    .lock-icon-container {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(255, 42, 95, 0.1), rgba(255, 193, 7, 0.1));
+        border: 1px solid rgba(255, 42, 95, 0.3);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: #ff2a5f;
+        box-shadow: 0 0 30px rgba(255, 42, 95, 0.2);
+        animation: pulse 2s infinite alternate;
+    }
+    @@keyframes pulse {
+        0% {
+            box-shadow: 0 0 20px rgba(255, 42, 95, 0.2);
+            transform: scale(1);
+        }
+        100% {
+            box-shadow: 0 0 40px rgba(255, 42, 95, 0.4);
+            transform: scale(1.05);
+        }
+    }
+    .btn-movie-gradient {
+        background: linear-gradient(90deg, #ff2a5f, #ffc107);
+        border: none;
+        color: white;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .btn-movie-gradient:hover {
+        background: linear-gradient(90deg, #e01f4f, #ffb300);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(255, 42, 95, 0.3);
+        color: white;
+    }
+</style>
+
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-12 col-md-8 col-lg-6 text-center">
+        <div class="glass-card p-5 border-glass">
+            <div class="mb-4">
+                <div class="lock-icon-container">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+            </div>
+            <h1 class="text-white fw-bold mb-3">Access Denied</h1>
+            <p class="text-white-50 fs-5 mb-4">
+                You do not have permission to access this page. Please contact the administrator or log in with an authorized account.
+            </p>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a asp-controller="Movies" asp-action="Index" class="btn btn-outline-light rounded-pill px-4 py-2">
+                    <i class="bi bi-house-door-fill me-2"></i>Home Page
+                </a>
+                <a asp-controller="Account" asp-action="Login" class="btn btn-movie-gradient rounded-pill px-4 py-2">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Log In
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

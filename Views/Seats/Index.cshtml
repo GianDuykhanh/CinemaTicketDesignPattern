@@ -1,0 +1,137 @@
+@model IEnumerable<IGrouping<string, Seat>>
+
+@{
+    ViewData["Title"] = "Seat Layout - " + ViewBag.Room?.Name;
+    var room = ViewBag.Room as CinemaRoom;
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-controller="CinemaRooms" asp-action="Details" asp-route-id="@ViewBag.RoomId" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Back to room">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-grid-3x3-gap-fill text-info me-2"></i>Seat Layout</h1>
+                <p class="text-muted mb-0 small">View the seating arrangement for @room?.Name</p>
+            </div>
+            <div class="ms-auto d-flex gap-2">
+                <a class="btn btn-sm btn-premium-outline px-3" asp-action="Manage" asp-route-roomId="@ViewBag.RoomId">
+                    <i class="bi bi-gear-fill me-1"></i>Manage Seats
+                </a>
+                <form asp-action="DeleteAll" asp-route-roomId="@ViewBag.RoomId" method="post" onsubmit="return confirm('Delete all seats in this room?');" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-outline-danger px-3">
+                        <i class="bi bi-trash-fill me-1"></i>Delete All
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="d-flex flex-wrap gap-3 mb-4 justify-content-center">
+            <div class="d-flex align-items-center gap-2">
+                <span style="width:24px;height:24px;background:#adb5bd;border-radius:4px;"></span>
+                <span class="small text-muted">Standard</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span style="width:24px;height:24px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:4px;"></span>
+                <span class="small text-muted">VIP</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span style="width:24px;height:24px;background:linear-gradient(135deg,#ec4899,#db2777);border-radius:4px;"></span>
+                <span class="small text-muted">Couple</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span style="width:24px;height:24px;background:#6c757d;border-radius:4px;opacity:0.5;"></span>
+                <span class="small text-muted">Disabled</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span style="width:24px;height:24px;background:rgba(239,68,68,0.3);border-radius:4px;border:2px dashed #ef4444;"></span>
+                <span class="small text-muted">Unavailable</span>
+            </div>
+        </div>
+
+        <!-- Screen -->
+        <div class="text-center mb-4">
+            <div style="width: 70%; max-width: 500px; margin: 0 auto; background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%); border-radius: 50% / 20px; padding: 8px 20px; font-size: 0.7rem; letter-spacing: 4px; color: rgba(255,255,255,0.6); text-transform: uppercase; font-weight: 700;">
+                Screen
+            </div>
+        </div>
+
+        <!-- Seat Grid -->
+        @if (Model == null || !Model.Any())
+        {
+            <div class="glass-panel p-5 text-center" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px;">
+                <i class="bi bi-grid-3x3 text-muted" style="font-size: 4rem;"></i>
+                <h4 class="text-white mt-3">No seats configured</h4>
+                <p class="text-muted mb-4">Generate seats for this room to see the layout.</p>
+                <a class="btn btn-premium-gradient px-4" asp-action="Create" asp-route-roomId="@ViewBag.RoomId">
+                    <i class="bi bi-plus-circle me-2"></i>Generate Seats
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="glass-panel p-4" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px;">
+                <div class="d-flex flex-column align-items-center gap-2">
+                    @foreach (var rowGroup in Model)
+                    {
+                        <div class="d-flex align-items-center gap-2 w-100 justify-content-center">
+                            <span class="text-muted fw-bold" style="width: 24px; font-size: 0.8rem; text-align: right;">@rowGroup.Key</span>
+                            <div class="d-flex gap-1">
+                                @foreach (var seat in rowGroup.OrderBy(s => s.Number))
+                                {
+                                    var (bg, color) = seat.SeatType switch
+                                    {
+                                        SeatType.VIP => ("linear-gradient(135deg,#fbbf24,#f59e0b)", "white"),
+                                        SeatType.Couple => ("linear-gradient(135deg,#ec4899,#db2777)", "white"),
+                                        SeatType.Disabled => ("#6c757d", "rgba(255,255,255,0.4)"),
+                                        _ => ("#adb5bd", "white")
+                                    };
+
+                                    var unavailableStyle = !seat.IsAvailable ? "opacity:0.35 !important; border: 2px dashed #ef4444 !important; background: rgba(239,68,68,0.15) !important;" : "";
+
+                                    <div class="d-flex flex-column align-items-center gap-0" style="width: 36px;">
+                                        <div style="width: 32px; height: 32px; background: @bg; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: @color; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.2s; @unavailableStyle"
+                                             title="@seat.SeatType - Row @seat.Row Seat @seat.Number">
+                                            @seat.Number
+                                        </div>
+                                        @if (seat.SeatType == SeatType.Couple)
+                                        {
+                                            <div style="height: 4px; width: 28px; background: linear-gradient(135deg,#ec4899,#db2777); border-radius: 2px;"></div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="row g-3 mt-3 justify-content-center">
+                <div class="col-auto">
+                    <div class="glass-panel px-4 py-3 text-center" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+                        <div class="text-info fw-bold" style="font-size: 1.5rem;">@Model.SelectMany(r => r).Count()</div>
+                        <div class="small text-muted">Total Seats</div>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="glass-panel px-4 py-3 text-center" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+                        <div class="text-success fw-bold" style="font-size: 1.5rem;">@Model.SelectMany(r => r).Count(s => s.IsAvailable)</div>
+                        <div class="small text-muted">Available</div>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="glass-panel px-4 py-3 text-center" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;">
+                        <div class="text-danger fw-bold" style="font-size: 1.5rem;">@Model.SelectMany(r => r).Count(s => !s.IsAvailable)</div>
+                        <div class="small text-muted">Unavailable</div>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+</div>

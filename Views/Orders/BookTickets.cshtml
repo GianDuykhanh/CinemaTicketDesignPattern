@@ -1,0 +1,885 @@
+@model movieCinema.Data.ViewModels.BookTicketsVM
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+@{
+    ViewData["Title"] = "Đặt Vé Xem Phim";
+    var movie = ViewBag.Movie as Movie;
+    var selectedShowtime = ViewBag.SelectedShowtime as Showtime;
+    var rememberedEmail = HttpContextAccessor.HttpContext?.Request.Cookies["CustomerEmail"];
+    var rememberedName = HttpContextAccessor.HttpContext?.Request.Cookies["CustomerName"];
+    if (string.IsNullOrEmpty(Model.Email) && !string.IsNullOrEmpty(rememberedEmail)) Model.Email = rememberedEmail;
+    if (string.IsNullOrEmpty(Model.Name) && !string.IsNullOrEmpty(rememberedName)) Model.Name = rememberedName;
+}
+
+<style>
+    .payment-method-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        cursor: pointer;
+    }
+    .payment-method-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+    }
+    .payment-method-card.active {
+        background: rgba(255, 193, 7, 0.1);
+        border-color: var(--bs-warning, #ffc107);
+    }
+    .payment-method-card input[type="radio"] {
+        accent-color: var(--bs-warning, #ffc107);
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-controller="Movies" asp-action="Details" asp-route-id="@movie?.Id" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Quay lại chi tiết phim">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-ticket-perforated-fill text-warning me-2"></i>Đặt Vé Xem Phim</h1>
+                <p class="text-muted mb-0 small">Chọn rạp, chọn suất chiếu, chọn vị trí ngồi và thanh toán trực tuyến</p>
+            </div>
+        </div>
+
+        @if (TempData["BookingError"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show border-0 mb-4" role="alert" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e; border-radius: 12px;">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["BookingError"]
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="row g-4">
+            <!-- Left: Selectors and Seat Map -->
+            <div class="col-12 col-lg-8">
+                <div class="form-glass-card p-4 mb-4">
+                    <h3 class="h5 text-white fw-bold mb-4"><i class="bi bi-sliders text-info me-2"></i>1. Chọn Rạp & Suất Chiếu</h3>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label-premium"><i class="bi bi-camera-reels"></i>Rạp chiếu phim</label>
+                            <select id="selectCinema" class="form-control form-control-glass">
+                                <option value="">-- Chọn rạp chiếu --</option>
+                                @if (ViewBag.Cinemas != null)
+                                {
+                                    foreach (var cinema in (IEnumerable<Cinema>)ViewBag.Cinemas)
+                                    {
+                                        if (ViewBag.SelectedCinemaId == cinema.Id)
+                                        {
+                                            <option value="@cinema.Id" selected>@cinema.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@cinema.Id">@cinema.Name</option>
+                                        }
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label-premium"><i class="bi bi-clock"></i>Suất chiếu khả dụng</label>
+                            <select id="selectShowtime" class="form-control form-control-glass">
+                                <option value="">-- Chọn suất chiếu --</option>
+                                @if (ViewBag.AllShowtimes != null && ViewBag.SelectedCinemaId != null)
+                                {
+                                    foreach (var st in (IEnumerable<Showtime>)ViewBag.AllShowtimes)
+                                    {
+                                        if (st.CinemaRoom?.CinemaId == ViewBag.SelectedCinemaId)
+                                        {
+                                            if (selectedShowtime?.Id == st.Id)
+                                            {
+                                                <option value="@st.Id" selected>@st.StartTime.ToString("dd/MM HH:mm") (@(st.CinemaRoom?.Name ?? "Room"))</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@st.Id">@st.StartTime.ToString("dd/MM HH:mm") (@(st.CinemaRoom?.Name ?? "Room"))</option>
+                                            }
+                                        }
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seat Grid Glass Card -->
+                <div class="form-glass-card p-3 p-lg-4">
+                    <h3 class="h5 text-white fw-bold mb-4"><i class="bi bi-grid-3x3-gap text-info me-2"></i>2. Chọn Ghế Ngồi</h3>
+
+                    <!-- Room Frame -->
+                    <div class="cinema-room-frame mb-3">
+                        <!-- Screen Representation -->
+                        <div class="screen-wrapper text-center">
+                            <div class="screen-glow">
+                                <div class="screen-bar"></div>
+                            </div>
+                            <span class="screen-label">MÀN HÌNH CHÍNH</span>
+                        </div>
+
+                        <!-- Interactive Seat Grid -->
+                        <div id="seatMapContainer" class="seat-grid-wrapper">
+                            @if (selectedShowtime != null && ViewBag.Seats != null)
+                            {
+                                <div class="d-flex flex-column gap-2 gap-lg-3">
+                                    @foreach (var group in (IEnumerable<IGrouping<string, Seat>>)ViewBag.Seats)
+                                    {
+                                        <div class="seat-row">
+                                            <!-- Row Label Left -->
+                                            <div class="seat-row-label">@group.Key</div>
+
+                                            <!-- Row Seats -->
+                                            <div class="seat-row-seats">
+                                                @foreach (var seat in group.OrderBy(s => s.Number))
+                                                {
+                                                    var seatCode = seat.Row + seat.Number;
+                                                    var isBooked = ((List<string>)ViewBag.BookedSeats).Contains(seatCode);
+                                                    double seatPrice = seat.SeatType == SeatType.VIP ? selectedShowtime.Price * 1.2 :
+                                                                      seat.SeatType == SeatType.Couple ? selectedShowtime.Price * 2.0 :
+                                                                      selectedShowtime.Price;
+
+                                                    string seatClass = "seat-cinema";
+                                                    string seatTitle = $"Ghế {seatCode}";
+                                                    string seatContent = seat.Number.ToString();
+
+                                                    if (seat.SeatType == SeatType.VIP)
+                                                    {
+                                                        seatClass += " seat-type-vip";
+                                                        seatTitle += " (VIP)";
+                                                    }
+                                                    else if (seat.SeatType == SeatType.Couple)
+                                                    {
+                                                        seatClass += " seat-type-couple";
+                                                        seatTitle += " (Ghế Đôi)";
+                                                    }
+                                                    else if (seat.SeatType == SeatType.Disabled)
+                                                    {
+                                                        seatClass += " seat-type-disabled";
+                                                        seatTitle += " (Thiết bị khuyết tật)";
+                                                        seatContent = "<i class=\"bi bi-person-wheelchair\"></i>";
+                                                    }
+                                                    else
+                                                    {
+                                                        seatTitle += " (Thường)";
+                                                    }
+
+                                                    if (isBooked)
+                                                    {
+                                                        seatClass += " seat-state-booked";
+                                                        seatTitle += " (Đã đặt)";
+                                                    }
+                                                    else if (!seat.IsAvailable)
+                                                    {
+                                                        seatClass += " seat-state-locked";
+                                                        seatTitle += " (Tạm khóa)";
+                                                    }
+
+                                                    <div class="@seatClass seat-shape"
+                                                         data-seat-code="@seatCode"
+                                                         data-price="@seatPrice"
+                                                         title="@seatTitle"
+                                                         @(isBooked || !seat.IsAvailable ? "data-disabled=true" : "onclick=toggleSeat(this)")>
+                                                        <div class="seat-cushion"></div>
+                                                        <div class="seat-back"></div>
+                                                        <div class="seat-number">@Html.Raw(seatContent)</div>
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <!-- Row Label Right -->
+                                            <div class="seat-row-label">@group.Key</div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="seat-empty-state">
+                                    <div class="seat-empty-icon">
+                                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M4 18V9a2 2 0 012-2h12a2 2 0 012 2v9"/>
+                                            <path d="M4 18a2 2 0 01-2-2v-1M20 18a2 2 0 002-2v-1"/>
+                                            <path d="M6 11V9a2 2 0 012-2M18 11V9a2 2 0 00-2-2"/>
+                                            <path d="M8 7V5a2 2 0 012-2v0a2 2 0 012 2v0M16 7V5a2 2 0 00-2-2v0a2 2 0 00-2 2v0"/>
+                                        </svg>
+                                    </div>
+                                    <p class="seat-empty-text">Vui lòng chọn rạp và suất chiếu<br/>để hiển thị sơ đồ ghế ngồi</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="legend-grid">
+                        <div class="legend-item">
+                            <div class="seat-shape seat-cinema legend-seat" style="cursor: default;">
+                                <div class="seat-cushion"></div><div class="seat-back"></div><div class="seat-number">1</div>
+                            </div>
+                            <span class="legend-label">Thường</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="seat-shape seat-cinema seat-type-vip legend-seat" style="cursor: default;">
+                                <div class="seat-cushion"></div><div class="seat-back"></div><div class="seat-number">1</div>
+                            </div>
+                            <span class="legend-label">VIP <span class="legend-badge">+20%</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="seat-shape seat-cinema seat-type-couple legend-seat" style="cursor: default;">
+                                <div class="seat-cushion"></div><div class="seat-back"></div><div class="seat-number">1-2</div>
+                            </div>
+                            <span class="legend-label">Ghế đôi <span class="legend-badge">x2</span></span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="seat-shape seat-cinema seat-type-disabled legend-seat" style="cursor: default;">
+                                <div class="seat-cushion"></div><div class="seat-back"></div><div class="seat-number"><i class="bi bi-person-wheelchair"></i></div>
+                            </div>
+                            <span class="legend-label">Khuyết tật</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="seat-shape seat-cinema seat-state-selected legend-seat" style="cursor: default;">
+                                <div class="seat-cushion"></div><div class="seat-back"></div><div class="seat-number">1</div>
+                            </div>
+                            <span class="legend-label">Đang chọn</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="seat-shape seat-cinema seat-state-booked legend-seat" style="cursor: default;">
+                                <div class="seat-cushion"></div><div class="seat-back"></div><div class="seat-number">1</div>
+                            </div>
+                            <span class="legend-label">Đã bán</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Ticket Card -->
+            <div class="col-12 col-lg-4">
+                <div class="ticket-card">
+                    <!-- Ticket Header -->
+                    <div class="ticket-header">
+                        <div class="ticket-stub-left">
+                            <div class="ticket-movie-poster">
+                                <img src="@movie?.ImageURL" alt="@movie?.Name" onerror="this.onerror=null;this.src='/images/default-poster.png';" />
+                            </div>
+                        </div>
+                        <div class="ticket-info">
+                            <span class="ticket-category">@movie?.Category?.Name</span>
+                            <h4 class="ticket-movie-name">@movie?.Name</h4>
+                            <div class="ticket-meta">
+                                <span><i class="bi bi-clock-fill"></i>@movie?.Duration phút</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ticket Divider with holes -->
+                    <div class="ticket-divider">
+                        <div class="ticket-hole ticket-hole-left"></div>
+                        <div class="ticket-dash-line"></div>
+                        <div class="ticket-hole ticket-hole-right"></div>
+                    </div>
+
+                    <!-- Ticket Body -->
+                    <div class="ticket-body">
+                        <!-- Showtime Details -->
+                        <div class="ticket-details">
+                            <div class="ticket-detail-row">
+                                <div class="ticket-detail-label">
+                                    <i class="bi bi-building"></i><span>Rạp</span>
+                                </div>
+                                <div class="ticket-detail-value" id="summaryCinema">@(selectedShowtime?.CinemaRoom?.Cinema?.Name ?? "--")</div>
+                            </div>
+                            <div class="ticket-detail-row">
+                                <div class="ticket-detail-label">
+                                    <i class="bi bi-door-open-fill"></i><span>Phòng</span>
+                                </div>
+                                <div class="ticket-detail-value" id="summaryRoom">@(selectedShowtime?.CinemaRoom?.Name ?? "--")</div>
+                            </div>
+                            <div class="ticket-detail-row">
+                                <div class="ticket-detail-label">
+                                    <i class="bi bi-calendar-event-fill"></i><span>Suất</span>
+                                </div>
+                                <div class="ticket-detail-value ticket-detail-highlight" id="summaryTime">@(selectedShowtime != null ? selectedShowtime.StartTime.ToString("dd/MM/yyyy HH:mm") : "--")</div>
+                            </div>
+                        </div>
+
+                        <!-- Seat Selection Summary -->
+                        <div class="ticket-seats-section">
+                            <div class="ticket-seats-header">
+                                <span><i class="bi bi-grid-3x3-gap"></i> Ghế đã chọn</span>
+                                <span class="ticket-seats-count" id="summaryCount">0</span>
+                            </div>
+                            <div class="ticket-seats-list" id="summarySeats">
+                                <span class="ticket-seats-placeholder">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Price Breakdown -->
+                        <div class="ticket-price-section" id="priceSection" style="display:none;">
+                            <div class="ticket-price-row" id="priceRows"></div>
+                            <div class="ticket-price-total">
+                                <span>Tổng cộng</span>
+                                <span id="summaryTotal">0 đ</span>
+                            </div>
+                        </div>
+                        <div class="ticket-price-empty" id="priceEmpty">
+                            <i class="bi bi-ticket"></i>
+                            <span>Chọn ghế để xem giá</span>
+                        </div>
+                    </div>
+
+                    <!-- Customer Form -->
+                    <form asp-controller="Orders" asp-action="BookTickets" method="post" id="bookingSubmitForm" class="ticket-form">
+                        <input type="hidden" asp-for="ShowtimeId" id="formShowtimeId" />
+                        <input type="hidden" asp-for="SelectedSeats" id="formSelectedSeats" />
+                        <input type="hidden" asp-for="DiscountAmount" id="formDiscountAmount" value="0" />
+                        <input type="hidden" asp-for="PointsRedeemed" id="formPointsRedeemed" value="0" />
+                        <input type="hidden" asp-for="VoucherCode" id="formVoucherCode" />
+
+                        <div class="form-group-premium">
+                            <label asp-for="Name" class="form-label-premium">
+                                <i class="bi bi-person-fill"></i>Tên khách hàng
+                            </label>
+                            <input asp-for="Name" class="form-control form-control-glass form-control-sm" placeholder="Nhập tên của bạn" required />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-group-premium">
+                            <label asp-for="Email" class="form-label-premium">
+                                <i class="bi bi-envelope-fill"></i>Địa chỉ Email
+                            </label>
+                            <input asp-for="Email" class="form-control form-control-glass form-control-sm" placeholder="email@example.com" required id="customerEmailInput" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Promotion & Loyalty Section -->
+                        <div class="form-group-premium mb-4">
+                            <label class="form-label-premium">
+                                <i class="bi bi-tags-fill text-warning me-2"></i>Khuyến mãi & Ưu đãi
+                            </label>
+                            <div class="d-flex gap-2">
+                                <input type="text" id="voucherInput" class="form-control form-control-glass form-control-sm" placeholder="Nhập mã giảm giá (GIAM50K, GIAM10...)" />
+                                <button type="button" class="btn btn-outline-info btn-sm px-3" onclick="applyVoucher()">Áp dụng</button>
+                            </div>
+                            <div id="voucherMessage" class="small mt-1" style="display:none;"></div>
+                            
+                            <!-- Member Points Display -->
+                            <div id="memberPointsSection" class="mt-3 p-3 rounded glass-panel" style="display:none; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1);">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="text-white small"><i class="bi bi-person-badge-fill text-info me-1"></i>Thành viên: <strong id="memberName">--</strong></span>
+                                    <span class="badge bg-info-subtle text-info" style="font-size:0.75rem;"><span id="memberPoints">0</span> điểm</span>
+                                </div>
+                                <div class="form-check form-switch mt-1">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="usePointsCheckbox" onchange="togglePointsRedemption()">
+                                    <label class="form-check-label text-muted small cursor-pointer" for="usePointsCheckbox">
+                                        Dùng điểm đổi giảm giá (Giảm <span id="pointsDiscountVal">0</span> đ)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group-premium mb-4">
+                            <label class="form-label-premium">
+                                <i class="bi bi-credit-card-2-front-fill text-warning me-2"></i>Phương thức thanh toán
+                            </label>
+                            <div class="payment-methods-grid d-flex flex-column gap-2 mt-2">
+                                <div class="payment-method-card active p-3 d-flex align-items-center justify-content-between" id="cardDirect" onclick="selectPaymentMethod('direct')">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input type="radio" name="PaymentMethod" value="direct" checked id="payDirect" class="form-check-input mt-0" onclick="event.stopPropagation(); selectPaymentMethod('direct');" />
+                                        <div class="payment-method-info">
+                                            <span class="text-white fw-bold d-block" style="font-size:0.875rem;">Thanh toán tại rạp</span>
+                                            <span class="text-muted" style="font-size:0.75rem;">Nhận vé và thanh toán trực tiếp tại quầy</span>
+                                        </div>
+                                    </div>
+                                    <i class="bi bi-building text-info fs-5"></i>
+                                </div>
+                                <div class="payment-method-card p-3 d-flex align-items-center justify-content-between" id="cardPaypal" onclick="selectPaymentMethod('paypal')">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input type="radio" name="PaymentMethod" value="paypal" id="payPaypal" class="form-check-input mt-0" onclick="event.stopPropagation(); selectPaymentMethod('paypal');" />
+                                        <div class="payment-method-info">
+                                            <span class="text-white fw-bold d-block" style="font-size:0.875rem;">Thanh toán qua PayPal</span>
+                                            <span class="text-muted" style="font-size:0.75rem;">Thanh toán trực tuyến bằng USD (1 USD = 25.000 đ)</span>
+                                        </div>
+                                    </div>
+                                    <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" style="height: 20px;" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-ticket-submit w-100" id="btnSubmitOrder" disabled>
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Xác nhận Đặt vé</span>
+                        </button>
+
+                        <div id="paypal-btn-container" style="display:none;" class="mt-3">
+                            <div id="paypal-btn"></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="https://www.paypal.com/sdk/js?client-id=AYNlji8b9WJnikVieHM6C1226KHG-5KmZjua-KkAv3wZi3U9rt5b7iy7U1ktAl6q-hz5fok8RDs1vn-P&currency=USD"></script>
+    <script>
+        const movieId = @(movie?.Id ?? 0);
+        let selectedSeats = [];
+        let ticketPrice = @(selectedShowtime?.Price ?? 0);
+
+        // Promotion State
+        let totalOriginalVND = 0;
+        let voucherCode = "";
+        let voucherDiscountVND = 0;
+        let voucherMinOrderAmount = 0;
+        let voucherIsPercentage = false;
+        let voucherValue = 0;
+        let pointsDiscountVND = 0;
+        let pointsAvailable = 0;
+        let pointsRedeemed = 0;
+
+        function toggleSeat(element) {
+            if (element.getAttribute('data-disabled') === 'true') return;
+
+            if (element.classList.contains('seat-state-selected')) {
+                element.classList.remove('seat-state-selected');
+            } else {
+                element.classList.add('seat-state-selected');
+            }
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const selectedElements = document.querySelectorAll('.seat-shape.seat-state-selected');
+            const summaryCount = document.getElementById('summaryCount');
+            const summarySeats = document.getElementById('summarySeats');
+            const summaryTotal = document.getElementById('summaryTotal');
+            const formSelectedSeats = document.getElementById('formSelectedSeats');
+            const btnSubmitOrder = document.getElementById('btnSubmitOrder');
+            const priceSection = document.getElementById('priceSection');
+            const priceEmpty = document.getElementById('priceEmpty');
+            const priceRows = document.getElementById('priceRows');
+
+            let codes = [];
+            let total = 0;
+            const seatPrices = {};
+
+            selectedElements.forEach(el => {
+                const code = el.getAttribute('data-seat-code');
+                const price = parseFloat(el.getAttribute('data-price') || 0);
+                codes.push(code);
+                total += price;
+                seatPrices[code] = price;
+            });
+
+            summaryCount.innerText = codes.length;
+
+            if (codes.length > 0) {
+                summarySeats.innerHTML = codes.map(c => `<span class="seat-pill">${c}</span>`).join('');
+                priceSection.style.display = 'block';
+                priceEmpty.style.display = 'none';
+
+                // Group by price
+                const groups = {};
+                codes.forEach(c => {
+                    const p = seatPrices[c];
+                    if (!groups[p]) groups[p] = [];
+                    groups[p].push(c);
+                });
+
+                let rowsHtml = '';
+                Object.keys(groups).sort((a, b) => b - a).forEach(p => {
+                    const seats = groups[p];
+                    const subtotal = p * seats.length;
+                    const label = seats.length === 1 ? seats[0] : `${seats.length} ghế`;
+                    rowsHtml += `<div class="ticket-price-row">
+                        <span>${label}</span>
+                        <span>${subtotal.toLocaleString('vi-VN')} đ</span>
+                    </div>`;
+                });
+                priceRows.innerHTML = rowsHtml;
+            } else {
+                summarySeats.innerHTML = '<span class="ticket-seats-placeholder">--</span>';
+                priceSection.style.display = 'none';
+                priceEmpty.style.display = 'flex';
+            }
+
+            totalOriginalVND = total;
+            formSelectedSeats.value = codes.join(',');
+
+            if (codes.length > 0) {
+                btnSubmitOrder.removeAttribute('disabled');
+            } else {
+                btnSubmitOrder.setAttribute('disabled', 'true');
+            }
+            recalculateDiscountAndTotal();
+        }
+
+        // Dynamic Cascading Dropdowns
+        document.getElementById('selectCinema').addEventListener('change', function () {
+            const cinemaId = this.value;
+            const selectShowtime = document.getElementById('selectShowtime');
+
+            selectShowtime.innerHTML = '<option value="">-- Chọn suất chiếu --</option>';
+            clearSeatMap();
+
+            if (!cinemaId) return;
+
+            fetch(`/Orders/GetShowtimesForCinemaAndMovie?movieId=${movieId}&cinemaId=${cinemaId}`)
+                .then(res => res.json())
+                .then(data => {
+                    data.forEach(st => {
+                        const opt = document.createElement('option');
+                        opt.value = st.id;
+                        opt.text = st.time;
+                        opt.setAttribute('data-price', st.price);
+                        selectShowtime.appendChild(opt);
+                    });
+                });
+        });
+
+        document.getElementById('selectShowtime').addEventListener('change', function () {
+            const showtimeId = this.value;
+            const formShowtimeId = document.getElementById('formShowtimeId');
+            formShowtimeId.value = showtimeId;
+
+            clearSeatMap();
+
+            if (!showtimeId) return;
+
+            const selectedOpt = this.options[this.selectedIndex];
+            ticketPrice = parseFloat(selectedOpt.getAttribute('data-price') || 0);
+
+            document.getElementById('summaryCinema').innerText = document.getElementById('selectCinema').options[document.getElementById('selectCinema').selectedIndex].text;
+            const parts = selectedOpt.text.split('(');
+            document.getElementById('summaryRoom').innerText = parts[1] ? parts[1].replace(')', '') : '--';
+            document.getElementById('summaryTime').innerText = parts[0].trim();
+
+            loadSeatMap(showtimeId);
+        });
+
+        function clearSeatMap() {
+            selectedSeats = [];
+            updateSummary();
+            document.getElementById('seatMapContainer').innerHTML = `
+                <div class="seat-empty-state">
+                    <div class="seat-empty-icon">
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M4 18V9a2 2 0 012-2h12a2 2 0 012 2v9"/>
+                            <path d="M4 18a2 2 0 01-2-2v-1M20 18a2 2 0 002-2v-1"/>
+                            <path d="M6 11V9a2 2 0 012-2M18 11V9a2 2 0 00-2-2"/>
+                            <path d="M8 7V5a2 2 0 012-2v0a2 2 0 012 2v0M16 7V5a2 2 0 00-2-2v0a2 2 0 00-2 2v0"/>
+                        </svg>
+                    </div>
+                    <p class="seat-empty-text">Vui lòng chọn rạp và suất chiếu<br/>để hiển thị sơ đồ ghế ngồi</p>
+                </div>
+            `;
+        }
+
+        function loadSeatMap(showtimeId) {
+            const container = document.getElementById('seatMapContainer');
+            container.innerHTML = `
+                <div class="d-flex align-items-center justify-content-center w-100 py-5">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+
+            fetch(`/Orders/GetSeatsForShowtime?showtimeId=${showtimeId}`)
+                .then(res => res.json())
+                .then(data => {
+                    let html = `<div class="d-flex flex-column gap-2 gap-lg-3">`;
+
+                    data.seats.forEach(group => {
+                        html += `<div class="seat-row">
+                            <div class="seat-row-label">${group.row}</div>
+                            <div class="seat-row-seats">`;
+
+                        group.seats.forEach(seat => {
+                            const seatCode = seat.row + seat.number;
+                            const isBooked = !seat.isAvailable;
+
+                            let seatClass = 'seat-cinema';
+                            let seatTitle = `Ghế ${seatCode}`;
+                            let clickAttr = `onclick="toggleSeat(this)"`;
+                            let seatContent = seat.number;
+
+                            if (seat.type === 'VIP') {
+                                seatClass += ' seat-type-vip';
+                                seatTitle += ' (VIP)';
+                            } else if (seat.type === 'Couple') {
+                                seatClass += ' seat-type-couple';
+                                seatTitle += ' (Ghế Đôi)';
+                            } else if (seat.type === 'Disabled') {
+                                seatClass += ' seat-type-disabled';
+                                seatTitle += ' (Khuyết tật)';
+                                seatContent = '<i class="bi bi-person-wheelchair"></i>';
+                            } else {
+                                seatTitle += ' (Thường)';
+                            }
+
+                            if (isBooked) {
+                                seatClass += ' seat-state-booked';
+                                seatTitle += ' (Đã đặt)';
+                                clickAttr = 'data-disabled="true"';
+                            }
+
+                            html += `<div class="${seatClass} seat-shape"
+                                         data-seat-code="${seatCode}"
+                                         data-price="${seat.price}"
+                                         title="${seatTitle}"
+                                         ${clickAttr}>
+                                        <div class="seat-cushion"></div>
+                                        <div class="seat-back"></div>
+                                        <div class="seat-number">${seatContent}</div>
+                                    </div>`;
+                        });
+
+                        html += `</div>
+                            <div class="seat-row-label">${group.row}</div>
+                        </div>`;
+                    });
+
+                    html += `</div>`;
+                    container.innerHTML = html;
+                });
+        }
+
+        function selectPaymentMethod(method) {
+            const payDirect = document.getElementById('payDirect');
+            const payPaypal = document.getElementById('payPaypal');
+            const cardDirect = document.getElementById('cardDirect');
+            const cardPaypal = document.getElementById('cardPaypal');
+            const btnSubmitOrder = document.getElementById('btnSubmitOrder');
+            const paypalBtnContainer = document.getElementById('paypal-btn-container');
+
+            if (method === 'direct') {
+                payDirect.checked = true;
+                cardDirect.classList.add('active');
+                cardPaypal.classList.remove('active');
+                btnSubmitOrder.style.display = 'block';
+                paypalBtnContainer.style.display = 'none';
+            } else {
+                payPaypal.checked = true;
+                cardPaypal.classList.add('active');
+                cardDirect.classList.remove('active');
+                btnSubmitOrder.style.display = 'none';
+                paypalBtnContainer.style.display = 'block';
+            }
+        }
+
+        function applyVoucher() {
+            const codeInput = document.getElementById('voucherInput');
+            const code = codeInput.value.trim();
+            const msgDiv = document.getElementById('voucherMessage');
+            
+            if (code === "") {
+                msgDiv.style.display = 'block';
+                msgDiv.className = 'text-warning small mt-1';
+                msgDiv.innerText = "Vui lòng nhập mã giảm giá.";
+                return;
+            }
+            
+            if (totalOriginalVND === 0) {
+                msgDiv.style.display = 'block';
+                msgDiv.className = 'text-warning small mt-1';
+                msgDiv.innerText = "Vui lòng chọn ghế trước khi nhập voucher.";
+                return;
+            }
+            
+            fetch(`/Orders/ValidateVoucher?code=${code}&totalAmount=${totalOriginalVND}`)
+                .then(res => res.json())
+                .then(data => {
+                    msgDiv.style.display = 'block';
+                    if (data.isValid) {
+                        msgDiv.className = 'text-success small mt-1';
+                        msgDiv.innerText = data.message;
+                        
+                        voucherCode = code;
+                        voucherDiscountVND = data.discountAmount;
+                        voucherIsPercentage = data.isPercentage;
+                        voucherValue = data.value;
+                        voucherMinOrderAmount = data.minOrderAmount;
+                    } else {
+                        msgDiv.className = 'text-danger small mt-1';
+                        msgDiv.innerText = data.message;
+                        voucherCode = "";
+                        voucherDiscountVND = 0;
+                        voucherIsPercentage = false;
+                        voucherValue = 0;
+                        voucherMinOrderAmount = 0;
+                    }
+                    recalculateDiscountAndTotal();
+                });
+        }
+
+        function togglePointsRedemption() {
+            recalculateDiscountAndTotal();
+        }
+
+        function recalculateDiscountAndTotal() {
+            if (voucherCode !== "") {
+                if (totalOriginalVND < voucherMinOrderAmount) {
+                    voucherCode = "";
+                    voucherDiscountVND = 0;
+                    voucherIsPercentage = false;
+                    voucherValue = 0;
+                    voucherMinOrderAmount = 0;
+                    document.getElementById('voucherInput').value = "";
+                    const msgDiv = document.getElementById('voucherMessage');
+                    msgDiv.style.display = 'block';
+                    msgDiv.className = 'text-warning small mt-1';
+                    msgDiv.innerText = "Mã giảm giá đã bị hủy do tổng tiền không đủ điều kiện tối thiểu.";
+                } else {
+                    if (voucherIsPercentage) {
+                        voucherDiscountVND = totalOriginalVND * (voucherValue / 100.0);
+                    } else {
+                        voucherDiscountVND = voucherValue;
+                    }
+                }
+            }
+            
+            const usePointsCheckbox = document.getElementById('usePointsCheckbox');
+            if (usePointsCheckbox && usePointsCheckbox.checked) {
+                let maxDiscountWithPoints = totalOriginalVND - voucherDiscountVND;
+                let potentialPointsDiscount = pointsAvailable * 1000.0;
+                
+                if (potentialPointsDiscount > maxDiscountWithPoints) {
+                    pointsDiscountVND = maxDiscountWithPoints;
+                    pointsRedeemed = Math.ceil(pointsDiscountVND / 1000.0);
+                } else {
+                    pointsDiscountVND = potentialPointsDiscount;
+                    pointsRedeemed = pointsAvailable;
+                }
+            } else {
+                pointsDiscountVND = 0;
+                pointsRedeemed = 0;
+            }
+            
+            let finalTotalVND = totalOriginalVND - voucherDiscountVND - pointsDiscountVND;
+            if (finalTotalVND < 0) finalTotalVND = 0;
+            
+            // Update hidden form inputs
+            document.getElementById('formDiscountAmount').value = voucherDiscountVND + pointsDiscountVND;
+            document.getElementById('formPointsRedeemed').value = pointsRedeemed;
+            document.getElementById('formVoucherCode').value = voucherCode;
+            
+            // Update display
+            const summaryTotal = document.getElementById('summaryTotal');
+            if (summaryTotal) {
+                if (voucherDiscountVND > 0 || pointsDiscountVND > 0) {
+                    summaryTotal.innerHTML = `
+                        <span class="text-decoration-line-through text-muted" style="font-size:0.875rem;">${totalOriginalVND.toLocaleString('vi-VN')} đ</span><br/>
+                        <span class="text-warning fw-bold">${finalTotalVND.toLocaleString('vi-VN')} đ</span>
+                        <div class="text-danger small mt-1" style="font-size:0.7rem;">(Giảm giá: ${(voucherDiscountVND + pointsDiscountVND).toLocaleString('vi-VN')} đ)</div>
+                    `;
+                } else {
+                    summaryTotal.innerHTML = `${totalOriginalVND.toLocaleString('vi-VN')} đ`;
+                }
+            }
+        }
+
+        // Email listener to load membership points
+        document.addEventListener("DOMContentLoaded", function() {
+            const emailInput = document.getElementById('customerEmailInput');
+            if (emailInput) {
+                emailInput.addEventListener('change', function() {
+                    const email = this.value.trim();
+                    const pointsSection = document.getElementById('memberPointsSection');
+                    const memberName = document.getElementById('memberName');
+                    const memberPoints = document.getElementById('memberPoints');
+                    const pointsDiscountVal = document.getElementById('pointsDiscountVal');
+                    const usePointsCheckbox = document.getElementById('usePointsCheckbox');
+                    
+                    // Reset points check
+                    usePointsCheckbox.checked = false;
+                    pointsAvailable = 0;
+                    pointsDiscountVND = 0;
+                    pointsRedeemed = 0;
+                    
+                    if (email === "") {
+                        pointsSection.style.display = 'none';
+                        recalculateDiscountAndTotal();
+                        return;
+                    }
+                    
+                    fetch(`/Orders/GetMemberPoints?email=${email}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.isMember && data.points > 0) {
+                                pointsAvailable = data.points;
+                                memberName.innerText = data.name;
+                                memberPoints.innerText = data.points;
+                                pointsDiscountVal.innerText = data.discountAmount.toLocaleString('vi-VN');
+                                pointsSection.style.display = 'block';
+                            } else {
+                                pointsSection.style.display = 'none';
+                            }
+                            recalculateDiscountAndTotal();
+                        });
+                });
+
+                // Auto-trigger if there is a remembered email pre-filled
+                if (emailInput.value.trim() !== "") {
+                    emailInput.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+
+        // Initialize PayPal button
+        paypal.Buttons({
+            style: {
+                layout: 'vertical',
+                color: 'gold',
+                shape: 'rect',
+                label: 'pay'
+            },
+            onClick: function(data, actions) {
+                const selectedElements = document.querySelectorAll('.seat-shape.seat-state-selected');
+                if (selectedElements.length === 0) {
+                    alert('Vui lòng chọn ít nhất một ghế ngồi.');
+                    return actions.reject();
+                }
+
+                const form = document.getElementById('bookingSubmitForm');
+                if (!form.reportValidity()) {
+                    return actions.reject();
+                }
+
+                return actions.resolve();
+            },
+            createOrder: function(data, actions) {
+                let finalTotalVND = totalOriginalVND - voucherDiscountVND - pointsDiscountVND;
+                if (finalTotalVND < 0) finalTotalVND = 0;
+
+                // Convert VND to USD (using exchange rate 1 USD = 25,000 VND)
+                let usdAmount = (finalTotalVND / 25000).toFixed(2);
+                if (parseFloat(usdAmount) <= 0) {
+                    usdAmount = "0.01";
+                }
+
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: usdAmount,
+                            currency_code: 'USD'
+                        }
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    // Form is valid and paid, submit it
+                    document.getElementById('bookingSubmitForm').submit();
+                });
+            }
+        }).render('#paypal-btn');
+    </script>
+}

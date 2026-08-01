@@ -1,0 +1,68 @@
+@model IEnumerable<movieCinema.Models.Voucher>
+
+@{
+    ViewData["Title"] = "Quản lý Khuyến mãi";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-tags-fill text-warning me-2"></i>Quản lý Mã giảm giá (Vouchers)</h2>
+    </div>
+
+    <div class="row">
+        @foreach (var item in Model)
+        {
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="glass-panel h-100 p-4 d-flex flex-column hover-lift">
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <div class="cinema-logo-ring d-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning" style="width: 60px; height: 60px; font-size: 1.8rem; border-radius: 12px; border: 1px solid rgba(255, 193, 7, 0.25);">
+                            <i class="bi bi-gift-fill"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="font-weight-bold text-white mb-1">@item.Code</h5>
+                            @if (item.IsActive && item.ExpiryDate >= DateTime.Now)
+                            {
+                                <span class="badge bg-success text-white small">Đang hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger text-white small">Ngưng hoạt động</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="voucher-details-box flex-grow-1 text-light small mb-3">
+                        <div class="d-flex justify-content-between py-1 border-bottom border-light border-opacity-10">
+                            <span class="text-muted">Mức giảm:</span>
+                            <strong>
+                                @(item.IsPercentage ? $"{item.DiscountPercentage}%" : $"{item.DiscountAmount.ToString("N0")} đ")
+                            </strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom border-light border-opacity-10">
+                            <span class="text-muted">Đơn tối thiểu:</span>
+                            <strong>@item.MinOrderAmount.ToString("N0") đ</strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-1">
+                            <span class="text-muted">Hết hạn:</span>
+                            <strong class="text-warning">@item.ExpiryDate.ToString("dd/MM/yyyy HH:mm")</strong>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 mt-auto pt-3 border-top border-secondary-subtle">
+                        <a class="btn cinema-action-btn" asp-action="Edit" asp-route-id="@item.Id" title="Chỉnh sửa">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+                        <a class="btn cinema-action-btn" style="color: var(--cinema-accent-cyan);" asp-action="Details" asp-route-id="@item.Id" title="Chi tiết">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a class="btn cinema-action-btn" style="color: var(--cinema-accent-rose);" asp-action="Delete" asp-route-id="@item.Id" title="Xóa">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_CreateItem", "Vouchers")

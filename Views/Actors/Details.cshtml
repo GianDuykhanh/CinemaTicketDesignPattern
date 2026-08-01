@@ -1,0 +1,92 @@
+@model Actor
+
+@{
+    ViewData["Title"] = "Details of the actor";
+}
+
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-person-badge-fill text-info me-2"></i>Actor Portfolio</h1>
+                <p class="text-muted mb-0 small">Detailed spotlight on the artist's professional career and biography</p>
+            </div>
+        </div>
+
+        <!-- Glass Profile Card -->
+        <div class="profile-glass-card">
+            <div class="row g-5">
+                
+                <!-- Left Column: Portrait and Name Card -->
+                <div class="col-12 col-md-5 col-lg-4">
+                    <div class="profile-sidebar">
+                        <div class="profile-picture-ring">
+                            <img class="profile-picture-img" src="@Model.ProfilePictureURL" alt="@Model.FullName" onerror="this.onerror=null;this.src='/images/default-avatar.png';" />
+                        </div>
+                        <h2 class="h4 fw-bold text-white mb-2">@Model.FullName</h2>
+                        <span class="tech-badge tech-vip mb-3"><i class="bi bi-star-fill"></i>Featured Artist</span>
+                        <div class="text-muted small mt-2">ID Reference: #@Model.Id</div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Biography & Details -->
+                <div class="col-12 col-md-7 col-lg-8 d-flex flex-column justify-content-between">
+                    <div>
+                        <!-- Biography Section -->
+                        <h3 class="bio-title"><i class="bi bi-journal-richtext"></i>Biography</h3>
+                        <p class="bio-text">@Model.Bio</p>
+
+                        <!-- Extra Details Stats Grid -->
+                        <div class="row g-3 mt-4">
+                            <div class="col-6">
+                                <div class="info-stat-box">
+                                    <div class="info-stat-icon">
+                                        <i class="bi bi-shield-check"></i>
+                                    </div>
+                                    <div>
+                                        <div class="info-stat-label">Profile Status</div>
+                                        <div class="info-stat-value text-success">Verified</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="info-stat-box">
+                                    <div class="info-stat-icon">
+                                        <i class="bi bi-film"></i>
+                                    </div>
+                                    <div>
+                                        <div class="info-stat-label">Industry</div>
+                                        <div class="info-stat-value">Featured Cast</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Footer -->
+                    <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-5">
+                        <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                            <i class="bi-arrow-left-circle me-2"></i>Back to List
+                        </a>
+
+                        @if(User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                        {
+                            <a class="btn btn-premium-gradient px-5 py-2" asp-action="Edit" asp-route-id="@Model.Id" style="width: auto;">
+                                <i class="bi bi-pencil-square me-2"></i>Edit Profile
+                            </a>
+                        }
+                        
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>

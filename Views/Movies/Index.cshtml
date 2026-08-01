@@ -1,0 +1,269 @@
+@model IEnumerable<Movie>
+
+@{
+    ViewData["Title"] = "List of Movies";
+    
+    // Choose featured movies (currently screening, otherwise latest added ones)
+    var featuredMovies = Model?
+        .Where(m => DateTime.Now >= m.StartDate && DateTime.Now <= m.EndDate)
+        .OrderByDescending(m => m.StartDate)
+        .Take(5)
+        .ToList();
+        
+    if (featuredMovies == null || !featuredMovies.Any())
+    {
+        featuredMovies = Model?.OrderByDescending(m => m.Id).Take(3).ToList();
+    }
+    
+    // Extract distinct categories dynamically
+    var categories = Model?
+        .Select(m => m.Category)
+        .Where(c => c != null)
+        .GroupBy(c => c.Id)
+        .Select(g => g.First())
+        .ToList();
+}
+
+<div class="container-fluid mt-4">
+    @if (featuredMovies != null && featuredMovies.Any())
+    {
+        <!-- Hero Banner Showcase Slider -->
+        <div id="movieHeroCarousel" class="carousel slide carousel-fade mb-5" data-bs-ride="carousel" data-bs-interval="6000">
+            @if (featuredMovies.Count > 1)
+            {
+                <!-- Indicators -->
+                <div class="carousel-indicators">
+                    @for (int i = 0; i < featuredMovies.Count; i++)
+                    {
+                        <button type="button" data-bs-target="#movieHeroCarousel" data-bs-slide-to="@i" class="@(i == 0 ? "active" : "")" aria-current="@(i == 0 ? "true" : "false")" aria-label="Slide @(i + 1)"></button>
+                    }
+                </div>
+            }
+            
+            <!-- Carousel Slides -->
+            <div class="carousel-inner" style="border-radius: 24px;">
+                @for (int i = 0; i < featuredMovies.Count; i++)
+                {
+                    var item = featuredMovies[i];
+                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                        <div class="cinema-hero m-0" style="position: relative; overflow: hidden; background: #0b0f19;">
+                            <!-- Blurred background poster acting as an ambient light glow -->
+                            <div class="hero-bg-backdrop" style="background: url('@(string.IsNullOrEmpty(item.ImageURL) ? "/images/default-poster.png" : item.ImageURL)') no-repeat center center; background-size: cover; filter: blur(35px) brightness(0.2); position: absolute; inset: 0; z-index: 0; pointer-events: none;"></div>
+                            
+                            <div class="hero-glow-blob" style="z-index: 1;"></div>
+                            
+                            <div class="row align-items-center w-100 h-100 m-0 py-4 px-4 px-md-5 position-relative" style="z-index: 2; min-height: 420px;">
+                                <!-- Left column: Movie info -->
+                                <div class="col-lg-8 col-md-7 text-start p-0 cinema-hero-content-inner">
+                                    <span class="cinema-hero-badge"><i class="bi bi-star-fill me-1 text-warning"></i>Featured Movie</span>
+                                    <h1 class="cinema-hero-title text-truncate" style="max-width: 100%;">@item.Name</h1>
+                                    <p class="cinema-hero-desc line-clamp-3">@item.Description</p>
+                                    <div class="cinema-hero-meta">
+                                        <span><i class="bi bi-tag-fill me-1"></i>@item.Category?.Name</span>
+                                        <span><i class="bi bi-clock-fill me-1"></i>@item.Duration min</span>
+                                        <span><i class="bi bi-wallet2 me-1"></i>@item.Price.ToString("N2") đ</span>
+                                    </div>
+                                    <div>
+                                        <a class="btn btn-premium-gradient d-inline-flex align-items-center justify-content-center px-4 py-2" style="width: auto;"
+                                           asp-action="Details" asp-route-id="@item.Id">
+                                            <i class="bi bi-play-circle-fill me-2 fs-5"></i> View Details
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right column: Small, high-quality, clear poster -->
+                                <div class="col-lg-4 col-md-5 d-none d-md-flex justify-content-center align-items-center p-0">
+                                    <div class="hero-poster-wrapper">
+                                        <img src="@(string.IsNullOrEmpty(item.ImageURL) ? "/images/default-poster.png" : item.ImageURL)" alt="@item.Name" onerror="this.onerror=null;this.src='/images/default-poster.png';" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            @if (featuredMovies.Count > 1)
+            {
+                <!-- Controls -->
+                <button class="carousel-control-prev" type="button" data-bs-target="#movieHeroCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#movieHeroCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            }
+        </div>
+    }
+
+    <!-- Heading and Filter Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <h2 class="text-white mb-0"><i class="bi bi-film text-info me-2"></i>Movies</h2>
+        
+        @if (categories != null && categories.Any())
+        {
+            <div class="filter-container mb-0">
+                <button class="filter-pill active" data-category="all">
+                    <i class="bi bi-grid-fill me-1"></i> All
+                </button>
+                @foreach (var cat in categories)
+                {
+                    <button class="filter-pill" data-category="@cat.Id">
+                        @cat.Name
+                    </button>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Movie Grid -->
+    <style>
+        .admin-border-glow {
+            border-color: rgba(6, 182, 212, 0.35) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 15px rgba(6, 182, 212, 0.15) !important;
+        }
+        .admin-border-glow:hover {
+            border-color: rgba(6, 182, 212, 0.6) !important;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(6, 182, 212, 0.3) !important;
+        }
+    </style>
+    <div class="row">
+        @foreach (var item in Model)
+        {
+            var isExpired = DateTime.Now > item.EndDate;
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4 movie-item-card" data-category="@item.Category?.Id">
+                <div class="movie-card @(User.Identity.IsAuthenticated && User.IsInRole("Admin") ? "admin-border-glow" : "")">
+                    <!-- Poster -->
+                    <div class="movie-poster-wrap">
+                        <img class="movie-poster-img" src="@item.ImageURL" alt="@item.Name" onerror="this.onerror=null;this.src='/images/default-poster.png';" />
+
+                        <!-- Top Badges -->
+                        <div class="movie-badges-top d-flex gap-1 flex-wrap">
+                            @{
+                                var isAvailable = DateTime.Now >= item.StartDate && DateTime.Now <= item.EndDate;
+                                var isUpcoming = DateTime.Now < item.StartDate;
+                            }
+                            @if (isAvailable)
+                            {
+                                <span class="movie-badge-status status-available"><i class="bi bi-lightning-charge-fill me-1"></i>AVAILABLE</span>
+                            }
+                            else if (isExpired)
+                            {
+                                <span class="movie-badge-status status-expired"><i class="bi bi-x-circle me-1"></i>EXPIRED</span>
+                            }
+                            else
+                            {
+                                <span class="movie-badge-status status-upcoming"><i class="bi bi-calendar-event me-1"></i>UPCOMING</span>
+                            }
+
+                            @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                            {
+                                <span class="badge bg-info text-white py-1.5 px-3 rounded-pill d-inline-flex align-items-center" style="font-size: 0.65rem; font-weight: 800; border: 1px solid rgba(255,255,255,0.15); line-height: 1;"><i class="bi bi-shield-lock-fill me-1"></i>ADMIN</span>
+                            }
+                        </div>
+
+                        <!-- Cinema Badge -->
+                        <div class="movie-cinema-badge">
+                            <i class="bi bi-camera-reels-fill me-1"></i>@item.Cinema?.Name
+                        </div>
+
+                        <!-- Overlay on hover -->
+                        <div class="movie-poster-overlay">
+                            <div class="movie-overlay-content">
+                                <p class="movie-desc-overlay">@item.Description</p>
+                                <div class="movie-meta-overlay">
+                                    <span><i class="bi bi-tag-fill me-1"></i>@item.Category?.Name</span>
+                                    <span><i class="bi bi-clock-fill me-1"></i>@item.Duration min</span>
+                                </div>
+                                <div class="movie-dates-overlay">
+                                    <span><i class="bi bi-calendar-range me-1"></i>@item.StartDate.ToString("dd MMM yy") - @item.EndDate.ToString("dd MMM yy")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="movie-card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="movie-category-label mb-0">@item.Category?.Name</div>
+                            @if (item.MovieReviews != null && item.MovieReviews.Any())
+                            {
+                                var avgRating = item.MovieReviews.Average(r => r.Rating);
+                                <div class="small text-warning" title="Average Rating: @avgRating.ToString("F1")/5.0">
+                                    <i class="bi bi-star-fill me-1"></i><strong>@avgRating.ToString("F1")</strong> <span class="text-muted text-xs">(@item.MovieReviews.Count)</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="small text-muted" title="No Reviews">
+                                    <i class="bi bi-star me-1"></i><span class="text-xs">0</span>
+                                </div>
+                            }
+                        </div>
+                        <h5 class="movie-title">@item.Name</h5>
+                        <div class="movie-price-row">
+                            <div class="movie-price">
+                                <span class="movie-price-label">From</span>
+                                <span class="movie-price-amount">@item.Price.ToString("N0") đ</span>
+                            </div>
+                            <a class="movie-btn-cart"
+                               asp-action="Details"
+                               asp-route-id="@item.Id"
+                               title="Book Tickets">
+                                <i class="bi bi-ticket-perforated"></i>
+                            </a>
+                        </div>
+                        <div class="movie-card-actions">
+                            @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                            {
+                                <a class="btn btn-sm btn-outline-warning d-flex align-items-center justify-content-center gap-1 flex-grow-1 py-2" asp-action="Edit" asp-route-id="@item.Id" style="border-radius:10px; font-weight:600;">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </a>
+                                <a class="btn btn-sm btn-outline-info d-flex align-items-center justify-content-center gap-1 flex-grow-1 py-2" asp-action="Details" asp-route-id="@item.Id" style="border-radius:10px; font-weight:600;">
+                                    <i class="bi bi-eye"></i> Details
+                                </a>
+                            }
+                            else
+                            {
+                                <a class="btn btn-sm btn-actor-details w-100 py-2" asp-action="Details" asp-route-id="@item.Id" style="border-radius:10px;">
+                                    <i class="bi bi-eye-fill me-1"></i> View Details
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_CreateItem", "Movies")
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const filterPills = document.querySelectorAll(".filter-pill");
+            const movieCards = document.querySelectorAll(".movie-item-card");
+
+            filterPills.forEach(pill => {
+                pill.addEventListener("click", function () {
+                    // Update active class on pills
+                    filterPills.forEach(p => p.classList.remove("active"));
+                    this.classList.add("active");
+
+                    // Filter cards
+                    const categoryId = this.getAttribute("data-category");
+                    movieCards.forEach(card => {
+                        if (categoryId === "all" || card.getAttribute("data-category") === categoryId) {
+                            card.style.display = "block";
+                        } else {
+                            card.style.display = "none";
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+}

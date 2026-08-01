@@ -1,0 +1,52 @@
+@model IEnumerable<Category>
+
+@{
+    ViewData["Title"] = "List of Categories";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-tags-fill text-info me-2"></i>Categories</h2>
+    </div>
+
+    <div class="row">
+        @foreach (var item in Model)
+        {
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="glass-panel h-100 p-4 d-flex flex-column hover-lift">
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <div class="cinema-logo-ring d-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info" style="width: 60px; height: 60px; font-size: 1.8rem; border-radius: 12px; border: 1px solid rgba(13, 202, 240, 0.25);">
+                            <i class="bi bi-tag-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-weight-bold text-white mb-1">@Html.DisplayFor(modelItem => item.Name)</h5>
+                            <span class="badge bg-secondary-subtle text-light small">Category ID: @item.Id</span>
+                        </div>
+                    </div>
+
+                    <p class="text-muted small flex-grow-1" style="line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 20px;">
+                        @Html.DisplayFor(modelItem => item.Description)
+                    </p>
+
+                    @if(User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                    {
+                        <div class="d-flex justify-content-end gap-3 mt-auto pt-3 border-top border-secondary-subtle">
+                            <a class="btn cinema-action-btn" asp-action="Edit" asp-route-id="@item.Id" title="Edit">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <a class="btn cinema-action-btn" style="color: var(--cinema-accent-cyan);" asp-action="Details" asp-route-id="@item.Id" title="Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a class="btn cinema-action-btn" style="color: var(--cinema-accent-rose);" asp-action="Delete" asp-route-id="@item.Id" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    }
+                    
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_CreateItem", "Categories")

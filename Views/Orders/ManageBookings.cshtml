@@ -1,0 +1,572 @@
+@model List<Order>
+
+@{
+    ViewData["Title"] = "Quản lý đặt vé";
+}
+
+<style>
+    .bg-dark-glass {
+        background: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(10px);
+    }
+    .border-glass {
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    .metric-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+    .metric-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .btn-movie-gradient {
+        background: linear-gradient(90deg, #ff2a5f, #00f0ff);
+        border: none;
+        color: white;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .btn-movie-gradient:hover {
+        background: linear-gradient(90deg, #e01f4f, #00ced1);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 240, 255, 0.3);
+        color: white;
+    }
+    .booking-status-badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .booking-status-badge.purchased {
+        background: rgba(0, 240, 255, 0.1);
+        border: 1px solid rgba(0, 240, 255, 0.3);
+        color: #00f0ff;
+    }
+    .booking-status-badge.confirmed {
+        background: rgba(40, 167, 69, 0.1);
+        border: 1px solid rgba(40, 167, 69, 0.3);
+        color: #28a745;
+    }
+    .booking-status-badge.cancelled {
+        background: rgba(255, 42, 95, 0.1);
+        border: 1px solid rgba(255, 42, 95, 0.3);
+        color: #ff2a5f;
+    }
+    .booking-status-badge.refunded {
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        color: #ffc107;
+    }
+    .border-dashed {
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+    }
+    .barcode-line-container {
+        display: inline-flex;
+        gap: 1.5px;
+        background: white;
+        padding: 6px 12px;
+        border-radius: 4px;
+    }
+    .barcode-line {
+        background: black;
+    }
+    .invoice-modal {
+        background: #121214 !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        backdrop-filter: blur(20px);
+    }
+    
+    @@media print {
+        body * {
+            visibility: hidden !important;
+        }
+        header, footer, nav, .glass-panel, .alert, .btn-movie-gradient, form, button, .modal-header, .modal-footer, .metrics-row, .d-flex {
+            display: none !important;
+        }
+        .modal.show {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            visibility: visible !important;
+            background: white !important;
+            color: black !important;
+        }
+        .modal.show .modal-dialog {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        .modal.show .modal-content {
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
+            color: black !important;
+            width: 100% !important;
+        }
+        .modal.show .modal-body,
+        .modal.show .invoice-container {
+            visibility: visible !important;
+            width: 100% !important;
+            background: white !important;
+            color: black !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .modal.show .text-white,
+        .modal.show .text-white-50,
+        .modal.show .text-muted,
+        .modal.show .text-info,
+        .modal.show .text-success,
+        .modal.show .text-warning,
+        .modal.show strong,
+        .modal.show span,
+        .modal.show h4,
+        .modal.show h6 {
+            color: black !important;
+        }
+        .modal.show .border-dashed {
+            border-bottom: 1px dashed black !important;
+        }
+        .modal.show .barcode-line-container {
+            background: white !important;
+            border: 1px solid black !important;
+        }
+        .modal.show .barcode-line {
+            background: black !important;
+        }
+    }
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <!-- Title Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="metric-icon" style="background:linear-gradient(135deg, #ffc107, #ff2a5f); color: white;">
+                    <i class="bi bi-person-gear"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 fw-bold text-white">Quản lý Đặt Vé</h2>
+                    <p class="text-muted mb-0" style="font-size:0.875rem;">Xác nhận, hủy vé, hoàn tiền và tra cứu thông tin đặt vé của khách hàng</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert messages -->
+        @if (TempData["ManageStatusMessage"] != null)
+        {
+            <div class="alert alert-success bg-success-subtle text-success border-success-subtle alert-dismissible fade show rounded-3 mb-4" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> @TempData["ManageStatusMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Metrics Dashboard Row -->
+        <div class="row g-3 mb-4 metrics-row">
+            <div class="col-md-2.4 col-sm-6 col-12">
+                <div class="metric-card p-3 d-flex align-items-center gap-3">
+                    <div class="metric-icon bg-primary-subtle text-primary">
+                        <i class="bi bi-ticket-perforated"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block">Tổng lượt đặt</span>
+                        <strong class="text-white fs-4">@ViewBag.TotalBookingsCount</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2.4 col-sm-6 col-12">
+                <div class="metric-card p-3 d-flex align-items-center gap-3">
+                    <div class="metric-icon bg-success-subtle text-success">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block">Lượt hoạt động</span>
+                        <strong class="text-white fs-4">@ViewBag.ActiveBookingsCount</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2.4 col-sm-6 col-12">
+                <div class="metric-card p-3 d-flex align-items-center gap-3">
+                    <div class="metric-icon bg-danger-subtle text-danger">
+                        <i class="bi bi-x-circle"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block">Lượt đã hủy</span>
+                        <strong class="text-white fs-4">@ViewBag.CancelledBookingsCount</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2.4 col-sm-6 col-12">
+                <div class="metric-card p-3 d-flex align-items-center gap-3">
+                    <div class="metric-icon bg-warning-subtle text-warning">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block">Đã hoàn tiền</span>
+                        <strong class="text-white fs-4">@ViewBag.RefundedBookingsCount</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2.4 col-sm-6 col-12">
+                <div class="metric-card p-3 d-flex align-items-center gap-3" style="border-color: rgba(0, 240, 255, 0.2);">
+                    <div class="metric-icon bg-info-subtle text-info">
+                        <i class="bi bi-currency-dollar"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block">Doanh thu thuần</span>
+                        <strong class="text-info fs-5">@(((double)ViewBag.TotalRevenue).ToString("N0")) đ</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Form -->
+        <div class="glass-panel p-4 mb-4 rounded-4 border-glass shadow bg-dark-glass">
+            <form method="get" asp-action="ManageBookings" class="row g-3">
+                <div class="col-md-3 col-sm-6">
+                    <label for="searchEmail" class="form-label text-white-50 small mb-1"><i class="bi bi-envelope me-1"></i>Email khách hàng</label>
+                    <input type="text" id="searchEmail" name="searchEmail" class="form-control form-control-sm bg-dark-glass text-white border-glass" placeholder="email@example.com..." value="@ViewBag.SearchEmail" />
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <label for="searchMovie" class="form-label text-white-50 small mb-1"><i class="bi bi-film me-1"></i>Tên phim</label>
+                    <input type="text" id="searchMovie" name="searchMovie" class="form-control form-control-sm bg-dark-glass text-white border-glass" placeholder="Nhập tên phim..." value="@ViewBag.SearchMovie" />
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <label for="searchStatus" class="form-label text-white-50 small mb-1"><i class="bi bi-info-circle me-1"></i>Trạng thái</label>
+                    <select id="searchStatus" name="searchStatus" class="form-select form-select-sm bg-dark-glass text-white border-glass">
+                        <option value="">-- Tất cả --</option>
+                        @if (ViewBag.SearchStatus == "Purchased") { <option value="Purchased" selected>Đã mua</option> } else { <option value="Purchased">Đã mua</option> }
+                        @if (ViewBag.SearchStatus == "Confirmed") { <option value="Confirmed" selected>Đã xác nhận</option> } else { <option value="Confirmed">Đã xác nhận</option> }
+                        @if (ViewBag.SearchStatus == "Cancelled") { <option value="Cancelled" selected>Đã hủy</option> } else { <option value="Cancelled">Đã hủy</option> }
+                        @if (ViewBag.SearchStatus == "Refunded") { <option value="Refunded" selected>Đã hoàn tiền</option> } else { <option value="Refunded">Đã hoàn tiền</option> }
+                    </select>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <label for="searchDate" class="form-label text-white-50 small mb-1"><i class="bi bi-calendar me-1"></i>Ngày mua</label>
+                    <input type="date" id="searchDate" name="searchDate" class="form-control form-control-sm bg-dark-glass text-white border-glass" value="@ViewBag.SearchDate" />
+                </div>
+                <div class="col-md-2 col-sm-12 d-flex gap-2 align-items-end justify-content-md-end justify-content-center">
+                    <button type="submit" class="btn btn-movie-gradient btn-sm py-2 px-3 rounded-pill flex-grow-1"><i class="bi bi-search me-1"></i> Lọc</button>
+                    @if (!string.IsNullOrEmpty(ViewBag.SearchEmail) || !string.IsNullOrEmpty(ViewBag.SearchMovie) || !string.IsNullOrEmpty(ViewBag.SearchStatus) || !string.IsNullOrEmpty(ViewBag.SearchDate))
+                    {
+                        <a href="@Url.Action("ManageBookings")" class="btn btn-outline-secondary btn-sm py-2 px-3 rounded-pill"><i class="bi bi-x-circle"></i> Clear</a>
+                    }
+                </div>
+            </form>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="text-center py-5 glass-panel rounded-4">
+                <div class="text-muted mb-3" style="font-size:3rem;">
+                    <i class="bi bi-inbox-fill"></i>
+                </div>
+                <h4 class="text-white mb-2">Không tìm thấy lượt đặt vé nào</h4>
+                <p class="text-muted mb-0">Thử điều chỉnh lại bộ lọc tìm kiếm của bạn.</p>
+            </div>
+        }
+        else
+        {
+            <div class="glass-panel p-3 border-glass rounded-4 bg-dark-glass">
+                <div class="table-responsive">
+                    <table class="table table-hover text-white align-middle mb-0">
+                        <thead>
+                            <tr class="text-white-50 border-secondary small">
+                                <th scope="col">ID</th>
+                                <th scope="col">Ngày mua</th>
+                                <th scope="col">Khách hàng</th>
+                                <th scope="col">Phim & Suất chiếu</th>
+                                <th scope="col">Vị trí ghế</th>
+                                <th scope="col" class="text-end">Doanh thu</th>
+                                <th scope="col" class="text-center">Trạng thái</th>
+                                <th scope="col" class="text-center">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in Model)
+                            {
+                                var paidAmount = order.TotalPrice - order.DiscountAmount;
+                                if (paidAmount < 0) paidAmount = 0;
+                                
+                                <tr class="border-secondary small">
+                                    <td><span class="fw-bold text-info">#@order.Id</span></td>
+                                    <td>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <div class="fw-semibold">@order.UserId</div>
+                                        <div class="text-white-50" style="font-size:0.75rem;"><i class="bi bi-envelope"></i> @order.Email</div>
+                                        <div class="text-muted" style="font-size:0.7rem;"><i class="bi bi-wallet2"></i> @(order.PaymentMethod == "PayPal" ? "PayPal (USD)" : "Tại rạp")</div>
+                                    </td>
+                                    <td>
+                                        @foreach(var item in order.OrderItems)
+                                        {
+                                            <div class="fw-bold text-white">@(item.Showtime?.Movie?.Name ?? "Movie N/A")</div>
+                                            <div class="text-white-50" style="font-size:0.75rem;">
+                                                <i class="bi bi-calendar-event me-1"></i>@(item.Showtime?.StartTime.ToString("dd/MM HH:mm") ?? "N/A")
+                                                &nbsp;&bull;&nbsp;
+                                                <i class="bi bi-door-open me-1"></i>@(item.Showtime?.CinemaRoom?.Name ?? "Room N/A")
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @foreach(var item in order.OrderItems)
+                                        {
+                                            <span class="badge bg-secondary text-white">@item.SelectedSeats</span>
+                                        }
+                                    </td>
+                                    <td class="text-end fw-bold">@paidAmount.ToString("N0") đ</td>
+                                    <td class="text-center">
+                                        @if (order.Status == "Confirmed")
+                                        {
+                                            <span class="booking-status-badge confirmed"><i class="bi bi-check-circle-fill"></i> Đã xác nhận</span>
+                                        }
+                                        else if (order.Status == "Cancelled")
+                                        {
+                                            <span class="booking-status-badge cancelled"><i class="bi bi-x-circle-fill"></i> Đã hủy</span>
+                                        }
+                                        else if (order.Status == "Refunded")
+                                        {
+                                            <span class="booking-status-badge refunded"><i class="bi bi-arrow-counterclockwise"></i> Đã hoàn tiền</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="booking-status-badge purchased"><i class="bi bi-ticket-perforated-fill"></i> Đã mua</span>
+                                        }
+                                    </td>
+                                    @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                                    {
+                                        <td>
+                                            <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <!-- View receipt button -->
+                                            <button type="button" class="btn btn-outline-info btn-xs rounded-pill py-1 px-2" style="font-size:0.75rem;" data-bs-toggle="modal" data-bs-target="#invoiceModal-@order.Id" title="Xem biên lai & in ấn">
+                                                <i class="bi bi-file-earmark-text"></i>
+                                            </button>
+
+                                            <!-- Contextual status modifications -->
+                                            @if (order.Status == "Purchased")
+                                            {
+                                                <form asp-action="ConfirmBooking" method="post" class="d-inline">
+                                                    <input type="hidden" name="id" value="@order.Id" />
+                                                    <input type="hidden" name="searchEmail" value="@ViewBag.SearchEmail" />
+                                                    <input type="hidden" name="searchMovie" value="@ViewBag.SearchMovie" />
+                                                    <input type="hidden" name="searchStatus" value="@ViewBag.SearchStatus" />
+                                                    <input type="hidden" name="searchDate" value="@ViewBag.SearchDate" />
+                                                    <button type="submit" class="btn btn-success btn-xs rounded-pill py-1 px-2 text-white" style="font-size:0.75rem;" title="Xác nhận vé" onclick="return confirm('Xác nhận vé này đã check-in / thanh toán thành công?');">
+                                                        <i class="bi bi-check-lg"></i>
+                                                    </button>
+                                                </form>
+
+                                                <form asp-action="CancelBooking" method="post" class="d-inline">
+                                                    <input type="hidden" name="id" value="@order.Id" />
+                                                    <input type="hidden" name="searchEmail" value="@ViewBag.SearchEmail" />
+                                                    <input type="hidden" name="searchMovie" value="@ViewBag.SearchMovie" />
+                                                    <input type="hidden" name="searchStatus" value="@ViewBag.SearchStatus" />
+                                                    <input type="hidden" name="searchDate" value="@ViewBag.SearchDate" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-xs rounded-pill py-1 px-2" style="font-size:0.75rem;" title="Hủy vé" onclick="return confirm('Bạn có chắc chắn muốn hủy vé này? Ghế ngồi sẽ được giải phóng.');">
+                                                        <i class="bi bi-x"></i>
+                                                    </button>
+                                                </form>
+
+                                                <form asp-action="RefundBooking" method="post" class="d-inline">
+                                                    <input type="hidden" name="id" value="@order.Id" />
+                                                    <input type="hidden" name="searchEmail" value="@ViewBag.SearchEmail" />
+                                                    <input type="hidden" name="searchMovie" value="@ViewBag.SearchMovie" />
+                                                    <input type="hidden" name="searchStatus" value="@ViewBag.SearchStatus" />
+                                                    <input type="hidden" name="searchDate" value="@ViewBag.SearchDate" />
+                                                    <button type="submit" class="btn btn-warning btn-xs rounded-pill py-1 px-2 text-dark" style="font-size:0.75rem;" title="Hoàn tiền" onclick="return confirm('Bạn có chắc chắn muốn hoàn tiền cho vé này? Điểm tích lũy và ghế ngồi sẽ được hoàn trả.');">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (order.Status == "Confirmed")
+                                            {
+                                                <form asp-action="RefundBooking" method="post" class="d-inline">
+                                                    <input type="hidden" name="id" value="@order.Id" />
+                                                    <input type="hidden" name="searchEmail" value="@ViewBag.SearchEmail" />
+                                                    <input type="hidden" name="searchMovie" value="@ViewBag.SearchMovie" />
+                                                    <input type="hidden" name="searchStatus" value="@ViewBag.SearchStatus" />
+                                                    <input type="hidden" name="searchDate" value="@ViewBag.SearchDate" />
+                                                    <button type="submit" class="btn btn-warning btn-xs rounded-pill py-1 px-2 text-dark" style="font-size:0.75rem;" title="Hoàn tiền" onclick="return confirm('Vé đã xác nhận. Bạn có chắc chắn muốn hoàn tiền?');">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                </form>
+
+                                                <form asp-action="CancelBooking" method="post" class="d-inline">
+                                                    <input type="hidden" name="id" value="@order.Id" />
+                                                    <input type="hidden" name="searchEmail" value="@ViewBag.SearchEmail" />
+                                                    <input type="hidden" name="searchMovie" value="@ViewBag.SearchMovie" />
+                                                    <input type="hidden" name="searchStatus" value="@ViewBag.SearchStatus" />
+                                                    <input type="hidden" name="searchDate" value="@ViewBag.SearchDate" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-xs rounded-pill py-1 px-2" style="font-size:0.75rem;" title="Hủy vé" onclick="return confirm('Vé đã xác nhận. Bạn có chắc chắn muốn hủy? Ghế ngồi sẽ được giải phóng.');">
+                                                        <i class="bi bi-x"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-white-50"><i class="bi bi-lock-fill"></i> Khóa</span>
+                                            }
+                                            </div>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td class="text-center">
+                                            <span class="text-white-50"><i class="bi bi-lock-fill"></i> Không có quyền</span>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Modals Hóa đơn cho từng đơn hàng -->
+            @foreach (var order in Model)
+            {
+                var paidAmount = order.TotalPrice - order.DiscountAmount;
+                if (paidAmount < 0) paidAmount = 0;
+                
+                <div class="modal fade" id="invoiceModal-@order.Id" tabindex="-1" aria-labelledby="invoiceModalLabel-@order.Id" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content invoice-modal rounded-4 shadow-lg text-white">
+                            <div class="modal-header border-0 pb-0">
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-4 pt-0">
+                                <div class="invoice-container">
+                                    <div class="text-center mb-3">
+                                        <h4 class="fw-bold text-info mb-1" style="letter-spacing: 1px;"><i class="bi bi-ticket-perforated-fill me-2"></i>MOVIECINEMA</h4>
+                                        <span class="text-muted small fw-semibold" style="font-size:0.75rem;">BIÊN LAI HÓA ĐƠN THANH TOÁN</span>
+                                        <div class="my-3 border-dashed"></div>
+                                    </div>
+                                    
+                                    <div class="row small text-white-50 g-2 mb-2">
+                                        <div class="col-6">Mã hóa đơn: <strong class="text-white">#MC-@order.Id</strong></div>
+                                        <div class="col-6 text-end">Ngày mua: @order.OrderDate.ToString("dd/MM/yyyy HH:mm")</div>
+                                        <div class="col-6">Khách hàng: <strong class="text-white">@order.UserId</strong></div>
+                                        <div class="col-6 text-end">Email: @order.Email</div>
+                                    </div>
+                                    
+                                    <div class="my-3 border-dashed"></div>
+                                    
+                                    <div class="invoice-items">
+                                        <h6 class="text-white-50 small mb-2 fw-bold"><i class="bi bi-film me-1"></i> CHI TIẾT VÉ XEM PHIM</h6>
+                                        @foreach (var item in order.OrderItems)
+                                        {
+                                            <div class="mb-3 p-2 rounded" style="background: rgba(255,255,255,0.02);">
+                                                <h6 class="fw-bold mb-1 text-white">@(item.Showtime?.Movie?.Name ?? "Movie N/A")</h6>
+                                                <div class="row small text-white-50 g-1">
+                                                    <div class="col-8">
+                                                        Suất chiếu: @(item.Showtime?.StartTime.ToString("dd/MM HH:mm") ?? "N/A") (@(item.Showtime?.CinemaRoom?.Name ?? "Room N/A"))<br/>
+                                                        Ghế đặt: <strong class="text-warning">@item.SelectedSeats</strong>
+                                                    </div>
+                                                    <div class="col-4 text-end align-self-end">
+                                                        @item.Amount vé x @((item.Price).ToString("N0")) đ
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    
+                                    <div class="my-3 border-dashed"></div>
+                                    
+                                    <div class="invoice-pricing small text-white-50">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Cộng tiền vé</span>
+                                            <span>@order.TotalPrice.ToString("N0") đ</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1 text-success">
+                                            <span>Chiết khấu giảm giá</span>
+                                            <span>-@order.DiscountAmount.ToString("N0") đ</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Điểm tiêu dùng</span>
+                                            <span>@order.PointsRedeemed điểm</span>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between fw-bold fs-5 text-white my-3 py-2 border-top border-bottom border-secondary">
+                                            <span>THÀNH TIỀN</span>
+                                            <span class="text-info">@paidAmount.ToString("N0") đ</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row small text-white-50 g-1 my-3">
+                                        <div class="col-6">Phương thức:</div>
+                                        <div class="col-6 text-end"><strong class="text-white">@(order.PaymentMethod == "PayPal" ? "PayPal (Online)" : "Thanh toán tại rạp")</strong></div>
+                                        <div class="col-6">Trạng thái giao dịch:</div>
+                                        <div class="col-6 text-end">
+                                            @if (order.Status == "Cancelled")
+                                            {
+                                                <span class="text-danger fw-bold"><i class="bi bi-x-circle me-1"></i>ĐÃ HỦY</span>
+                                            }
+                                            else if (order.Status == "Confirmed")
+                                            {
+                                                <span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ĐÃ XÁC NHẬN</span>
+                                            }
+                                            else if (order.Status == "Refunded")
+                                            {
+                                                <span class="text-warning fw-bold"><i class="bi bi-arrow-counterclockwise me-1"></i>ĐÃ HOÀN TIỀN</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-info fw-bold"><i class="bi bi-ticket-perforated-fill me-1"></i>ĐÃ MUA THÀNH CÔNG</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="my-3 border-dashed"></div>
+                                    
+                                    <!-- Simulated Barcode -->
+                                    <div class="text-center my-3">
+                                        <div class="barcode-line-container mb-2">
+                                            @for(int i = 0; i < 35; i++) {
+                                                var width = (i % 3 == 0) ? "3px" : (i % 2 == 0) ? "1px" : "2px";
+                                                <div class="barcode-line" style="display:inline-block; width: @width; height: 35px; background: black; margin-right: 1px;"></div>
+                                            }
+                                        </div>
+                                        <div class="text-muted text-uppercase fw-semibold" style="font-size: 0.6rem; letter-spacing: 3px;">
+                                            *MC-@order.Id-@(order.OrderDate.Ticks.ToString().Substring(0, Math.Min(8, order.OrderDate.Ticks.ToString().Length)))*
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center text-muted small mt-2" style="font-size: 0.75rem;">
+                                        Cảm ơn bạn đã lựa chọn MovieCinema!<br/>
+                                        Vui lòng xuất trình biên lai này tại quầy để nhận vé.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-0 d-flex justify-content-center gap-2 pt-0 pb-4">
+                                <button type="button" class="btn btn-outline-info rounded-pill px-4" onclick="window.print()"><i class="bi bi-printer me-1"></i> In hóa đơn</button>
+                                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>

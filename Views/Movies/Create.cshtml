@@ -1,0 +1,234 @@
+@model NewMovieVM
+@using movieCinema.Data
+@using MovieCinema.Data.Enums
+
+@{
+    ViewData["Title"] = "Create a new movie";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-11">
+
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-plus-circle text-info me-2"></i>Create a New Movie</h1>
+                <p class="text-muted mb-0 small">Publish a new film to the screening directory</p>
+            </div>
+        </div>
+
+        <!-- Glass card Form -->
+        <div class="form-glass-card">
+            <form asp-action="Create" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+
+                <div class="row g-5">
+                    <!-- Left: Poster Live Preview -->
+                    <div class="col-12 col-md-4 col-lg-3">
+                        <div class="preview-card h-100 p-4 d-flex flex-column align-items-center justify-content-center text-center">
+                            <div class="poster-preview-ring" id="previewRing" style="width: 100%; max-width: 220px; height: 310px; margin-bottom: 1.25rem;">
+                                <img class="poster-preview-img" id="ImageUrlPreview" src="/images/default-poster.png" alt="Poster Preview" onerror="this.onerror=null;this.src='/images/default-poster.png';" />
+                            </div>
+                            <h4 class="text-white h6 fw-bold mb-1">Live Poster</h4>
+                            <p class="text-muted small mb-0" style="line-height: 1.4;">2:3 Cinematic aspect ratio preview</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Input Fields -->
+                    <div class="col-12 col-md-8 col-lg-9">
+                        <div class="row g-3">
+                            
+                            <!-- SECTION 1: GENERAL INFORMATION -->
+                            <div class="col-12">
+                                <h5 class="text-info pb-2 mb-3 mt-1 border-bottom border-secondary-subtle small fw-bold text-uppercase" style="letter-spacing: 1px;">
+                                    <i class="bi bi-info-circle me-2"></i>General Information
+                                </h5>
+                            </div>
+
+                            <!-- Movie Name -->
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label asp-for="Name" class="form-label-premium"><i class="bi bi-film"></i>Movie Name</label>
+                                    <input asp-for="Name" class="form-control form-control-glass" placeholder="Enter movie title" autocomplete="off" />
+                                    <span asp-validation-for="Name" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+
+                            <!-- Category & Duration -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="CategoryId" class="form-label-premium"><i class="bi bi-tag-fill"></i>Category</label>
+                                    <select asp-for="CategoryId" class="form-select form-control-glass" asp-items="ViewBag.Categories"></select>
+                                    <span asp-validation-for="CategoryId" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Duration" class="form-label-premium"><i class="bi bi-clock-history"></i>Duration (minutes)</label>
+                                    <input asp-for="Duration" type="number" class="form-control form-control-glass" placeholder="e.g. 120" />
+                                    <span asp-validation-for="Duration" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label asp-for="Description" class="form-label-premium"><i class="bi bi-card-text"></i>Synopsis / Description</label>
+                                    <textarea asp-for="Description" class="form-control form-control-glass" placeholder="Enter movie description or synopsis..." style="height: 110px;"></textarea>
+                                    <span asp-validation-for="Description" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 2: SCHEDULING & PRICING -->
+                            <div class="col-12">
+                                <h5 class="text-info pb-2 mb-3 mt-4 border-bottom border-secondary-subtle small fw-bold text-uppercase" style="letter-spacing: 1px;">
+                                    <i class="bi bi-calendar-event me-2"></i>Scheduling & Pricing
+                                </h5>
+                            </div>
+
+                            <!-- Start Date & End Date -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="StartDate" class="form-label-premium"><i class="bi bi-calendar-check"></i>Start Date</label>
+                                    <input asp-for="StartDate" type="date" class="form-control form-control-glass" />
+                                    <span asp-validation-for="StartDate" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="EndDate" class="form-label-premium"><i class="bi bi-calendar-x"></i>End Date</label>
+                                    <input asp-for="EndDate" type="date" class="form-control form-control-glass" />
+                                    <span asp-validation-for="EndDate" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+
+                            <!-- Price & Status -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Price" class="form-label-premium"><i class="bi bi-cash-stack"></i>Ticket Price</label>
+                                    <input asp-for="Price" type="number" step="0.01" class="form-control form-control-glass" placeholder="0.00" />
+                                    <span asp-validation-for="Price" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Status" class="form-label-premium"><i class="bi bi-info-circle-fill"></i>Status</label>
+                                    <select asp-for="Status" class="form-select form-control-glass" asp-items="Html.GetEnumSelectList<MovieStatus>()"></select>
+                                    <span asp-validation-for="Status" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 3: CINEMA, CAST & MEDIA -->
+                            <div class="col-12">
+                                <h5 class="text-info pb-2 mb-3 mt-4 border-bottom border-secondary-subtle small fw-bold text-uppercase" style="letter-spacing: 1px;">
+                                    <i class="bi bi-camera-reels me-2"></i>Cinema, Cast & Media
+                                </h5>
+                            </div>
+
+                            <!-- Cinema, Screening Room & Producer -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label asp-for="CinemaId" class="form-label-premium"><i class="bi bi-building"></i>Cinema</label>
+                                    <select asp-for="CinemaId" class="form-select form-control-glass" asp-items="ViewBag.Cinemas"></select>
+                                    <span asp-validation-for="CinemaId" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label asp-for="CinemaRoomId" class="form-label-premium"><i class="bi bi-door-open-fill"></i>Screening Room</label>
+                                    <select asp-for="CinemaRoomId" class="form-select form-control-glass" asp-items="ViewBag.CinemaRooms">
+                                        <option value="">-- Select a Room --</option>
+                                    </select>
+                                    <span asp-validation-for="CinemaRoomId" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label asp-for="ProducerId" class="form-label-premium"><i class="bi bi-person-workspace"></i>Producer</label>
+                                    <select asp-for="ProducerId" class="form-select form-control-glass" asp-items="ViewBag.Producers"></select>
+                                    <span asp-validation-for="ProducerId" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+
+                            <!-- Cast Selection -->
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label asp-for="ActorIds" class="form-label-premium"><i class="bi bi-people-fill"></i>Select Actors <span class="text-muted text-lowercase small ms-1">(Click to toggle multiple selections)</span></label>
+                                    <select asp-for="ActorIds" class="form-select form-control-glass" asp-items="ViewBag.Actors" multiple style="height: 120px;"></select>
+                                    <span asp-validation-for="ActorIds" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+
+                            <!-- Image Upload File & Trailer URL -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="ImageUpload" class="form-label-premium"><i class="bi bi-image"></i>Poster Image</label>
+                                    <input asp-for="ImageUpload" type="file" accept="image/*" class="form-control form-control-glass" id="ImageUpload" />
+                                    <span asp-validation-for="ImageUpload" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="TrailerUpload" class="form-label-premium"><i class="bi bi-play-btn-fill"></i>Upload Trailer</label>
+                                    <input asp-for="TrailerUpload" type="file" accept="video/*" class="form-control form-control-glass" id="TrailerUpload" />
+                                    <span asp-validation-for="TrailerUpload" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+
+                            <!-- Buttons Row -->
+                            <div class="col-12 d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-4">
+                                <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                                    <i class="bi bi-list-stars me-2"></i>Show All
+                                </a>
+                                <button type="submit" class="btn btn-premium-gradient px-5 py-2" style="width: auto;">
+                                    <i class="bi bi-plus-circle-fill me-2"></i>Create Movie
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Handle file upload live preview
+            $("#ImageUpload").on("change", function () {
+                var preview = document.getElementById('ImageUrlPreview');
+                var ring = document.getElementById('previewRing');
+                var file = this.files[0];
+                
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        preview.src = e.target.result;
+                        ring.style.boxShadow = "0 10px 30px rgba(6, 182, 212, 0.6)";
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.src = "/images/default-poster.png";
+                    ring.style.boxShadow = "0 10px 30px rgba(6, 182, 212, 0.25)";
+                }
+            });
+
+            // Toggle selection on select multiple options without Ctrl key
+            $("select[multiple]").on("mousedown", "option", function (e) {
+                e.preventDefault();
+                var select = $(this).parent();
+                var scroll = select.scrollTop();
+                $(this).prop('selected', !$(this).prop('selected'));
+                setTimeout(function() { select.scrollTop(scroll); }, 0);
+                select.trigger('change');
+                return false;
+            });
+        });
+    </script>
+}
+

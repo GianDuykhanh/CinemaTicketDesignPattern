@@ -1,0 +1,60 @@
+@model movieCinema.Models.Voucher
+
+@{
+    ViewData["Title"] = "Chi tiết mã giảm giá";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="form-glass-card p-4 text-center">
+            
+            <div class="cinema-logo-ring d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning mb-4" style="width: 80px; height: 80px; font-size: 2.2rem; border-radius: 20px; border: 1px solid rgba(255, 193, 7, 0.25);">
+                <i class="bi bi-gift-fill"></i>
+            </div>
+
+            <h2 class="text-white fw-bold h3 mb-2">@Model.Code</h2>
+            <p class="text-muted small mb-4">Chi tiết mã giảm giá trong hệ thống</p>
+
+            <div class="text-start p-4 mb-4 rounded border border-light-subtle" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(7, 10, 19, 0.85) 100%); --bs-border-color: rgba(255, 255, 255, 0.08);">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom border-secondary-subtle">
+                    <span class="fw-bold text-uppercase tracking-wider text-warning" style="font-size:0.75rem;">THÔNG TIN VOUCHER</span>
+                    @if (Model.IsActive && Model.ExpiryDate >= DateTime.Now)
+                    {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle text-uppercase text-xs" style="font-size: 0.65rem;">Khả Dụng</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle text-uppercase text-xs" style="font-size: 0.65rem;">Hết Hạn / Khóa</span>
+                    }
+                </div>
+
+                <div class="row g-3" style="font-size:0.9rem;">
+                    <div class="col-6">
+                        <span class="text-muted d-block">Loại giảm giá</span>
+                        <strong class="text-white">@(Model.IsPercentage ? "Giảm theo phần trăm" : "Giảm tiền mặt")</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Mức giảm giá</span>
+                        <strong class="text-warning">@(Model.IsPercentage ? $"{Model.DiscountPercentage}%" : $"{Model.DiscountAmount.ToString("N0")} đ")</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Đơn hàng tối thiểu</span>
+                        <strong class="text-white">@Model.MinOrderAmount.ToString("N0") đ</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Ngày hết hạn</span>
+                        <strong class="text-white">@Model.ExpiryDate.ToString("dd/MM/yyyy HH:mm")</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 justify-content-center">
+                <a asp-action="Index" class="btn btn-premium-outline px-4" style="width: auto;">
+                    <i class="bi bi-arrow-left me-2"></i>Danh sách
+                </a>
+                @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-premium-gradient px-4" style="width: auto; background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
+                        <i class="bi bi-pencil-square me-2"></i>Chỉnh sửa
+                    </a>
+                }

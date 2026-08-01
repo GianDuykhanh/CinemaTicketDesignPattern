@@ -1,0 +1,223 @@
+@model IEnumerable<movieCinema.Data.ViewModels.ShowtimeScheduleVM>
+
+@{
+    ViewData["Title"] = "Lịch Chiếu Phim";
+    var today = DateTime.Today;
+    var selectedDateStr = ViewBag.SelectedDate as string;
+    DateTime? selectedDate = null;
+    if (!string.IsNullOrEmpty(selectedDateStr) && DateTime.TryParse(selectedDateStr, out var parsedDate))
+    {
+        selectedDate = parsedDate;
+    }
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+        <div class="review-avatar flex-shrink-0" style="width: 50px; height: 50px; font-size: 1.5rem;">
+            <i class="bi bi-calendar3"></i>
+        </div>
+        <div>
+            <h1 class="h2 fw-bold text-white mb-1">Lịch Chiếu Phim</h1>
+            <p class="text-muted mb-0 small">Tra cứu nhanh lịch chiếu theo ngày, theo rạp, và tìm các suất chiếu còn vé trống</p>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="form-glass-card mb-5 p-4">
+        <form method="get" id="filterForm" class="row g-4 align-items-end">
+            <!-- Hidden inputs for active state -->
+            <input type="hidden" name="date" id="selectedDateInput" value="@ViewBag.SelectedDate" />
+
+            <!-- Horizontal Date Selector (7 Days) -->
+            <div class="col-12">
+                <label class="form-label-premium mb-3"><i class="bi bi-calendar-check text-info"></i>Chọn nhanh ngày chiếu</label>
+                <div class="filter-container d-flex gap-2 py-1" style="overflow-x: auto; white-space: nowrap;">
+                    <button type="button" 
+                            class="filter-pill @(selectedDate == null ? "active" : "")"
+                            onclick="selectDate('')">
+                        <i class="bi bi-grid-fill me-1"></i>Tất cả các ngày
+                    </button>
+                    @for (int i = 0; i < 7; i++)
+                    {
+                        var loopDate = today.AddDays(i);
+                        var loopDateStr = loopDate.ToString("yyyy-MM-dd");
+                        var isActive = selectedDate.HasValue && selectedDate.Value.Date == loopDate.Date;
+                        var dayOfWeek = loopDate.DayOfWeek == DayOfWeek.Sunday ? "Chủ Nhật" : $"Thứ {(int)loopDate.DayOfWeek + 1}";
+                        if (loopDate.Date == today) dayOfWeek = "Hôm Nay";
+
+                        <button type="button" 
+                                class="filter-pill @(isActive ? "active" : "")"
+                                onclick="selectDate('@loopDateStr')">
+                            <span class="d-block fw-bold" style="font-size:0.9rem;">@dayOfWeek</span>
+                            <span class="d-block text-xs text-muted" style="font-size:0.75rem; color:inherit !important;">@loopDate.ToString("dd/MM")</span>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Cinema Dropdown & Date Picker -->
+            <div class="col-12 col-md-5">
+                <label for="cinemaId" class="form-label-premium"><i class="bi bi-camera-reels text-cyan"></i>Rạp chiếu phim</label>
+                <select id="cinemaId" name="cinemaId" class="form-control form-control-glass" onchange="this.form.submit()">
+                    <option value="">-- Tất cả rạp --</option>
+                    @if (ViewBag.Cinemas != null)
+                    {
+                        foreach (var cinema in (IEnumerable<Cinema>)ViewBag.Cinemas)
+                        {
+                            if (ViewBag.SelectedCinemaId == cinema.Id)
+                            {
+                                <option value="@cinema.Id" selected>@cinema.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@cinema.Id">@cinema.Name</option>
+                            }
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label for="customDatePicker" class="form-label-premium"><i class="bi bi-calendar3 text-cyan"></i>Chọn ngày tùy chọn</label>
+                <input type="date" id="customDatePicker" class="form-control form-control-glass" 
+                       value="@ViewBag.SelectedDate" 
+                       onchange="selectDate(this.value)" />
+            </div>
+
+            <!-- Only Available Tickets Toggle -->
+            <div class="col-12 col-md-3">
+                <div class="form-check form-switch p-0 d-flex align-items-center justify-content-start gap-3 h-100 mb-2">
+                    <input class="form-check-input ms-0" type="checkbox" id="onlyAvailable" name="onlyAvailable" value="true" 
+                           @(ViewBag.OnlyAvailable ? "checked" : "") onchange="this.form.submit()" style="width: 2.5em; height: 1.25em; cursor:pointer;" />
+                    <label class="form-check-label text-white fw-bold mb-0" for="onlyAvailable" style="cursor:pointer; font-size:0.9rem;">
+                        <i class="bi bi-ticket-perforated-fill text-warning me-1"></i>Chỉ suất chiếu còn vé
+                    </label>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Grouped Movie Schedule List -->
+    @if (Model != null && Model.Any())
+    {
+        // Group showtimes by Movie
+        var groupedByMovie = Model.GroupBy(m => m.Showtime.Movie).OrderBy(g => g.Key.Name);
+
+        foreach (var movieGroup in groupedByMovie)
+        {
+            var movie = movieGroup.Key;
+            <div class="movie-detail-glass-card mb-4 p-4">
+                <div class="row g-4">
+                    <!-- Movie Column -->
+                    <div class="col-12 col-lg-3">
+                        <div class="d-flex flex-sm-row flex-lg-column gap-3">
+                            <div style="max-width: 140px; width: 100%; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);">
+                                <img src="@movie.ImageURL" alt="@movie.Name" class="w-100" style="object-fit: cover;" onerror="this.onerror=null;this.src='/images/default-poster.png';" />
+                            </div>
+                            <div>
+                                <span class="movie-category-chip mb-2">@movie.Category?.Name</span>
+                                <h3 class="h5 text-white fw-bold mb-2">@movie.Name</h3>
+                                <div class="text-muted text-xs mb-3" style="font-size:0.8rem;">
+                                    <i class="bi bi-clock-fill me-1 text-cyan"></i>@movie.Duration min
+                                </div>
+                                <a asp-controller="Movies" asp-action="Details" asp-route-id="@movie.Id" class="btn btn-sm btn-premium-outline py-1.5" style="font-size: 0.8rem; width: auto;">
+                                    Chi tiết phim
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cinema & Showtimes Column -->
+                    <div class="col-12 col-lg-9 border-start border-secondary-subtle ps-lg-4">
+                        @{
+                            // Group by Cinema within this Movie
+                            var groupedByCinema = movieGroup.GroupBy(s => s.Showtime.CinemaRoom?.Cinema).OrderBy(c => c.Key?.Name);
+                        }
+                        
+                        @foreach (var cinemaGroup in groupedByCinema)
+                        {
+                            var cinema = cinemaGroup.Key;
+                            <div class="mb-4">
+                                <h4 class="h6 text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                                    <i class="bi bi-camera-reels-fill text-warning"></i>
+                                    @(cinema?.Name ?? "Rạp Chưa Xác Định")
+                                </h4>
+                                
+                                <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-2.5">
+                                    @foreach (var item in cinemaGroup.OrderBy(i => i.Showtime.StartTime))
+                                    {
+                                        var isAvailable = item.AvailableSeats > 0;
+                                        <div class="col">
+                                            @if (isAvailable)
+                                            {
+                                                <a asp-controller="Orders" asp-action="BookTickets" asp-route-showtimeId="@item.Showtime.Id" 
+                                                   class="btn d-flex flex-column align-items-center justify-content-center p-2.5 text-center text-decoration-none h-100 border border-light-subtle rounded-3 text-white hover-lift"
+                                                   style="background: rgba(255, 255, 255, 0.03); --bs-border-color: rgba(255, 255, 255, 0.06); transition: var(--transition-smooth);"
+
+                                                   title="Click để đặt vé cho suất chiếu này">
+                                                    
+                                                    <span class="d-block fw-bold text-cyan mb-1" style="font-size: 1.1rem;">
+                                                        @item.Showtime.StartTime.ToString("HH:mm")
+                                                    </span>
+                                                    <span class="d-block text-muted text-xs mb-1.5" style="font-size: 0.75rem;">
+                                                        <i class="bi bi-door-open me-0.5"></i> @(item.Showtime.CinemaRoom?.Name ?? "Room N/A")
+                                                    </span>
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 mb-1.5 text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.5px;">
+                                                        Còn @item.AvailableSeats / @(item.Showtime.CinemaRoom?.Capacity ?? 0) vé
+                                                    </span>
+                                                    <span class="d-block text-warning fw-semibold" style="font-size: 0.85rem;">
+                                                        @item.Showtime.Price.ToString("N0") đ
+                                                    </span>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <div class="d-flex flex-column align-items-center justify-content-center p-2.5 text-center h-100 border border-secondary-subtle rounded-3"
+                                                     style="background: rgba(255, 255, 255, 0.01); --bs-border-color: rgba(255,255,255,0.03); opacity: 0.5;">
+                                                    
+                                                    <span class="d-block fw-bold text-muted mb-1" style="font-size: 1.1rem; text-decoration: line-through;">
+                                                        @item.Showtime.StartTime.ToString("HH:mm")
+                                                    </span>
+                                                    <span class="d-block text-muted text-xs mb-1.5" style="font-size: 0.75rem;">
+                                                        <i class="bi bi-door-open me-0.5"></i> @(item.Showtime.CinemaRoom?.Name ?? "Room N/A")
+                                                    </span>
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5 mb-1.5 text-uppercase fw-bold" style="font-size:0.65rem; letter-spacing:0.5px;">
+                                                        HẾT VÉ
+                                                    </span>
+                                                    <span class="d-block text-muted text-xs fw-semibold" style="font-size: 0.85rem;">
+                                                        @item.Showtime.Price.ToString("N0") đ
+                                                    </span>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="movie-detail-glass-card py-5 text-center text-muted">
+            <i class="bi bi-calendar-x fs-1 mb-3 text-secondary d-block"></i>
+            <h3 class="h4 text-white fw-bold mb-2">Không tìm thấy lịch chiếu nào</h3>
+            <p class="mb-4">Không có suất chiếu nào phù hợp với bộ lọc hiện tại của bạn.</p>
+            <a href="Schedule" class="btn btn-premium-gradient px-4 py-2" style="width: auto;">
+                <i class="bi bi-arrow-counterclockwise me-2"></i>Reset bộ lọc
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function selectDate(dateStr) {
+            document.getElementById('selectedDateInput').value = dateStr;
+            document.getElementById('filterForm').submit();
+        }
+    </script>
+}

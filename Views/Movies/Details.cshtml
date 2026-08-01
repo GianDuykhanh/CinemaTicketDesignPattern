@@ -1,0 +1,457 @@
+@model Movie
+
+@{
+    ViewData["Title"] = "Movie details";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-film text-info me-2"></i>Movie Details</h1>
+                <p class="text-muted mb-0 small">Explore the full information, cast, and booking options for this film</p>
+            </div>
+        </div>
+
+        <!-- Movie Hero Card -->
+        <div class="movie-detail-glass-card">
+            <div class="row g-5">
+
+                <!-- Left: Poster -->
+                <div class="col-12 col-md-5 col-lg-4">
+                    <div class="movie-detail-poster-wrap">
+                        <img class="movie-detail-poster-img" src="@Model.ImageURL" alt="@Model.Name" onerror="this.onerror=null;this.src='/images/default-poster.png';" />
+
+                        <!-- Status Badge overlay -->
+                        <div class="movie-detail-status-overlay">
+                            @{
+                                var isAvailable = DateTime.Now >= Model.StartDate && DateTime.Now <= Model.EndDate;
+                                var isExpired = DateTime.Now > Model.EndDate;
+                                var isUpcoming = DateTime.Now < Model.StartDate;
+                            }
+                            @if (isAvailable)
+                            {
+                                <span class="movie-badge-status status-available"><i class="bi bi-lightning-charge-fill me-1"></i>AVAILABLE</span>
+                            }
+                            else if (isExpired)
+                            {
+                                <span class="movie-badge-status status-expired"><i class="bi bi-x-circle me-1"></i>EXPIRED</span>
+                            }
+                            else
+                            {
+                                <span class="movie-badge-status status-upcoming"><i class="bi bi-calendar-event me-1"></i>UPCOMING</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Price & CTA -->
+                    <div class="movie-detail-price-card" style="padding: 1.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span class="text-white fw-bold"><i class="bi bi-calendar-check text-info me-2"></i>Select Showtime</span>
+                            <div class="movie-duration-badge">
+                                <i class="bi bi-clock-fill me-1"></i>@Model.Duration min
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                            @if (ViewBag.Showtimes != null && ((IEnumerable<Showtime>)ViewBag.Showtimes).Any())
+                            {
+                                foreach (var showtime in (IEnumerable<Showtime>)ViewBag.Showtimes)
+                                {
+                                    <div class="p-2 rounded d-flex justify-content-between align-items-center border border-light-subtle" style="background: rgba(255, 255, 255, 0.03); --bs-border-color: rgba(255,255,255,0.06);">
+                                        <div>
+                                            <div class="fw-bold text-white" style="font-size:0.85rem;">
+                                                <i class="bi bi-calendar3 me-1" style="color:var(--cinema-accent-cyan);"></i> @showtime.StartTime.ToString("dd/MM HH:mm")
+                                            </div>
+                                            <div class="text-muted" style="font-size:0.75rem;">
+                                                <i class="bi bi-door-open me-1"></i> @(showtime.CinemaRoom?.Name ?? "Room N/A")
+                                            </div>
+                                            <div class="text-warning fw-semibold" style="font-size:0.85rem;">
+                                                @showtime.Price.ToString("N0") đ
+                                            </div>
+                                        </div>
+                                        <a class="btn btn-sm btn-premium-gradient px-3 py-1 text-nowrap" style="font-size:0.75rem; border-radius: 8px;"
+                                           asp-controller="Orders"
+                                           asp-action="BookTickets"
+                                           asp-route-showtimeId="@showtime.Id">
+                                            <i class="bi bi-ticket-perforated me-1"></i> Đặt vé
+                                        </a>
+
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center py-4 text-muted" style="font-size:0.85rem;">
+                                    <i class="bi bi-calendar-x fs-4 mb-2 d-block text-secondary"></i>
+                                    No showtimes scheduled.
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Info -->
+                <div class="col-12 col-md-7 col-lg-8 d-flex flex-column">
+                    <div>
+                        <!-- Category Tag & Rating -->
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                            <span class="movie-category-chip mb-0">@Model.Category?.Name</span>
+                            @if (Model.MovieReviews != null && Model.MovieReviews.Any())
+                            {
+                                var avgRating = Model.MovieReviews.Average(r => r.Rating);
+                                <span class="badge bg-warning-subtle text-warning px-3 py-2 rounded-pill d-inline-flex align-items-center gap-1" style="font-size:0.8rem; font-weight: 600; border: 1px solid rgba(251, 191, 36, 0.25);">
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    @avgRating.ToString("F1") / 5.0 (@Model.MovieReviews.Count đánh giá)
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary-subtle text-muted px-3 py-2 rounded-pill d-inline-flex align-items-center gap-1" style="font-size:0.8rem; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.08);">
+                                    <i class="bi bi-star"></i>
+                                    Chưa có đánh giá
+                                </span>
+                            }
+                        </div>
+
+                        <!-- Title -->
+                        <h2 class="movie-detail-title">@Model.Name</h2>
+
+                        <!-- Quick Meta -->
+                        <div class="movie-detail-quick-meta">
+                            <div class="movie-detail-meta-item">
+                                <i class="bi bi-calendar-range"></i>
+                                <span>@Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <div class="movie-detail-meta-item">
+                                <i class="bi bi-camera-reels-fill"></i>
+                                <a asp-controller="Cinemas" asp-action="Details" asp-route-id="@Model.CinemaId">@Model.Cinema?.Name</a>
+                            </div>
+                            @if (Model.CinemaRoom != null)
+                            {
+                                <div class="movie-detail-meta-item">
+                                    <i class="bi bi-door-open-fill"></i>
+                                    <a asp-controller="CinemaRooms" asp-action="Details" asp-route-id="@Model.CinemaRoomId">@Model.CinemaRoom.Name</a>
+                                </div>
+                            }
+                            <div class="movie-detail-meta-item">
+                                <i class="bi bi-headset"></i>
+                                <a asp-controller="Producers" asp-action="Details" asp-route-id="@Model.ProducerId">@Model.Producer?.FullName</a>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <h3 class="movie-detail-section-title"><i class="bi bi-journal-richtext"></i>Synopsis</h3>
+                        <p class="movie-detail-desc">@Model.Description</p>
+
+                        <!-- Cast Section -->
+                        @if (Model.Actors_Movies != null && Model.Actors_Movies.Any())
+                        {
+                            <h3 class="movie-detail-section-title"><i class="bi bi-people-fill"></i>Cast</h3>
+                            <div class="movie-cast-grid">
+                                @foreach (var am in Model.Actors_Movies)
+                                {
+                                    <div class="movie-cast-item">
+                                        <a asp-controller="Actors" asp-action="Details" asp-route-id="@am.ActorId" class="movie-cast-link">
+                                            <div class="movie-cast-avatar-ring">
+                                                <img class="movie-cast-avatar-img" src="@am.Actor?.ProfilePictureURL" alt="@am.Actor?.FullName" onerror="this.onerror=null;this.src='/images/default-avatar.png';" />
+                                            </div>
+                                            <span class="movie-cast-name">@am.Actor?.FullName</span>
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Trailer -->
+                        @if (!string.IsNullOrEmpty(Model.TrailerURL))
+                        {
+                            <h3 class="movie-detail-section-title"><i class="bi bi-play-circle-fill"></i>Trailer</h3>
+                            <div class="movie-trailer-wrap">
+                                @if (Model.TrailerURL.StartsWith("/trailers/"))
+                                {
+                                    <video class="movie-trailer-frame" controls>
+                                        <source src="@Model.TrailerURL" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                }
+                                else
+                                {
+                                    string trailerEmbedUrl = Model.TrailerURL;
+                                    if (trailerEmbedUrl.Contains("youtu.be/"))
+                                    {
+                                        var parts = trailerEmbedUrl.Split("youtu.be/");
+                                        if (parts.Length > 1)
+                                        {
+                                            var videoId = parts[1].Split('?')[0].Split('&')[0];
+                                            trailerEmbedUrl = $"https://www.youtube.com/embed/{videoId}";
+                                        }
+                                    }
+                                    else if (trailerEmbedUrl.Contains("youtube.com/watch"))
+                                    {
+                                        if (trailerEmbedUrl.Contains("v="))
+                                        {
+                                            var parts = trailerEmbedUrl.Split("v=");
+                                            if (parts.Length > 1)
+                                            {
+                                                var videoId = parts[1].Split('&')[0].Split('?')[0];
+                                                trailerEmbedUrl = $"https://www.youtube.com/embed/{videoId}";
+                                            }
+                                        }
+                                    }
+                                    <iframe class="movie-trailer-frame" src="@trailerEmbedUrl" title="Trailer for @Model.Name" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Actions Footer -->
+                    <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-5">
+                        <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                            <i class="bi bi-arrow-left-circle me-2"></i>Back to List
+                        </a>
+                        @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                        {
+                            <a class="btn btn-movie-gradient px-5 py-2" asp-action="Edit" asp-route-id="@Model.Id" style="width: auto;">
+                                <i class="bi bi-pencil-square me-2"></i>Edit Movie
+                            </a>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Reviews Section -->
+        <div class="movie-detail-glass-card mt-5 p-4">
+            <h3 class="h4 text-white fw-bold mb-4 d-flex align-items-center gap-2">
+                <i class="bi bi-chat-right-heart-fill text-info"></i>
+                Đánh giá & Nhận xét
+            </h3>
+
+            <!-- Alerts -->
+            @if (TempData["ReviewSuccess"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show border-0 mb-4" role="alert" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-radius: 12px;">
+                    <i class="bi bi-check-circle-fill me-2"></i>@TempData["ReviewSuccess"]
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["ReviewError"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show border-0 mb-4" role="alert" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e; border-radius: 12px;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ReviewError"]
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <div class="row g-4">
+                <!-- Review Stats -->
+                <div class="col-12 col-md-4">
+                    <div class="rating-summary-card h-100 d-flex flex-column align-items-center justify-content-center text-center">
+                        <span class="text-muted small text-uppercase fw-bold mb-2">Đánh Giá Trung Bình</span>
+                        @if (Model.MovieReviews != null && Model.MovieReviews.Any())
+                        {
+                            var avg = Model.MovieReviews.Average(r => r.Rating);
+                            <div class="average-rating-number mb-2">@avg.ToString("F1")</div>
+                            <div class="text-warning mb-2" style="font-size: 1.25rem;">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    if (i <= Math.Round(avg))
+                                    {
+                                        <i class="bi bi-star-fill mx-0.5"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-star mx-0.5"></i>
+                                    }
+                                }
+                            </div>
+                            <span class="text-muted small">@Model.MovieReviews.Count đánh giá</span>
+                        }
+                        else
+                        {
+                            <div class="average-rating-number mb-2 text-muted">--</div>
+                            <div class="text-muted mb-2" style="font-size: 1.25rem;">
+                                <i class="bi bi-star mx-0.5"></i>
+                                <i class="bi bi-star mx-0.5"></i>
+                                <i class="bi bi-star mx-0.5"></i>
+                                <i class="bi bi-star mx-0.5"></i>
+                                <i class="bi bi-star mx-0.5"></i>
+                            </div>
+                            <span class="text-muted small">Chưa có đánh giá</span>
+                        }
+
+                        <!-- Star Breakdown -->
+                        <div class="w-100 mt-4 text-start">
+                            @{
+                                var totalReviews = Model.MovieReviews?.Count ?? 0;
+                                for (int stars = 5; stars >= 1; stars--)
+                                {
+                                    var count = Model.MovieReviews?.Count(r => r.Rating == stars) ?? 0;
+                                    var percent = totalReviews > 0 ? (count * 100 / totalReviews) : 0;
+                                    <div class="d-flex align-items-center gap-2 mb-2" style="font-size: 0.85rem;">
+                                        <span style="width: 12px;" class="text-white">@stars</span>
+                                        <i class="bi bi-star-fill text-warning" style="font-size:0.8rem;"></i>
+                                        <div class="flex-grow-1">
+                                            <div class="rating-progress-bar">
+                                                <div class="rating-progress-fill" style="width: @percent%;"></div>
+                                            </div>
+                                        </div>
+                                        <span style="width: 30px;" class="text-end text-muted text-xs">@count</span>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review Form & List -->
+                <div class="col-12 col-md-8">
+                    <!-- Tabs for viewing list and writing a review -->
+                    <ul class="nav nav-pills mb-4" id="reviewTab" role="tablist" style="background: rgba(255,255,255,0.03); padding: 5px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                        <li class="nav-item flex-grow-1 text-center" role="presentation">
+                            <button class="nav-link active w-100 border-0 rounded-3 text-white" id="list-tab" data-bs-toggle="tab" data-bs-target="#list-pane" type="button" role="tab" aria-controls="list-pane" aria-selected="true" style="transition: var(--transition-smooth); font-weight:600; background: transparent;">
+                                <i class="bi bi-chat-left-text me-2 text-info"></i>Nhận xét (@(Model.MovieReviews?.Count ?? 0))
+                            </button>
+                        </li>
+                        <li class="nav-item flex-grow-1 text-center" role="presentation">
+                            <button class="nav-link w-100 border-0 rounded-3 text-white" id="write-tab" data-bs-toggle="tab" data-bs-target="#write-pane" type="button" role="tab" aria-controls="write-pane" aria-selected="false" style="transition: var(--transition-smooth); font-weight:600; background: transparent;">
+                                <i class="bi bi-pencil-square me-2 text-cyan"></i>Viết đánh giá
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="reviewTabContent">
+                        <!-- Tab List -->
+                        <div class="tab-pane fade show active" id="list-pane" role="tabpanel" aria-labelledby="list-tab" tabindex="0">
+                            <div style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                                @if (Model.MovieReviews != null && Model.MovieReviews.Any())
+                                {
+                                    foreach (var review in Model.MovieReviews.OrderByDescending(r => r.CreatedAt))
+                                    {
+                                        <div class="review-item-card">
+                                            <div class="d-flex gap-3 align-items-start">
+                                                <div class="review-avatar flex-shrink-0">
+                                                    @(!string.IsNullOrEmpty(review.Name) ? review.Name.Substring(0, 1).ToUpper() : "?")
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <h5 class="text-white fw-bold mb-0" style="font-size: 1rem;">@review.Name</h5>
+                                                        <span class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-clock me-1"></i>@review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                    </div>
+                                                    <div class="text-warning mb-2" style="font-size: 0.85rem;">
+                                                        @for (int i = 1; i <= 5; i++)
+                                                        {
+                                                            if (i <= review.Rating)
+                                                            {
+                                                                <i class="bi bi-star-fill me-0.5"></i>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-star me-0.5"></i>
+                                                            }
+                                                        }
+                                                    </div>
+                                                    <p class="text-muted mb-0" style="font-size: 0.9rem; line-height: 1.5; white-space: pre-line;">@review.Comment</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-center py-5 text-muted">
+                                        <i class="bi bi-chat-square-dots fs-1 mb-3 text-secondary d-block"></i>
+                                        Chưa có đánh giá nào cho phim này. Hãy là người đầu tiên đánh giá!
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Tab Write Review -->
+                        <div class="tab-pane fade" id="write-pane" role="tabpanel" aria-labelledby="write-tab" tabindex="0">
+                            <form asp-controller="Movies" asp-action="AddReview" method="post" class="needs-validation">
+                                <input type="hidden" name="MovieId" value="@Model.Id" />
+                                
+                                <div class="mb-3">
+                                    <label class="form-label-premium"><i class="bi bi-star-fill text-warning"></i>Điểm đánh giá của bạn</label>
+                                    <div class="star-rating-select">
+                                        <input type="radio" id="write-star5" name="Rating" value="5" required />
+                                        <label for="write-star5" class="bi bi-star-fill" title="5 sao"></label>
+                                        <input type="radio" id="write-star4" name="Rating" value="4" />
+                                        <label for="write-star4" class="bi bi-star-fill" title="4 sao"></label>
+                                        <input type="radio" id="write-star3" name="Rating" value="3" />
+                                        <label for="write-star3" class="bi bi-star-fill" title="3 sao"></label>
+                                        <input type="radio" id="write-star2" name="Rating" value="2" />
+                                        <label for="write-star2" class="bi bi-star-fill" title="2 sao"></label>
+                                        <input type="radio" id="write-star1" name="Rating" value="1" />
+                                        <label for="write-star1" class="bi bi-star-fill" title="1 sao"></label>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-12 col-sm-6">
+                                        <label for="Name" class="form-label-premium"><i class="bi bi-person"></i>Tên hiển thị</label>
+                                        <input type="text" id="Name" name="Name" class="form-control form-control-glass" placeholder="Ví dụ: Nguyễn Văn A" required max-length="50" />
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <label for="Email" class="form-label-premium"><i class="bi bi-envelope"></i>Địa chỉ Email</label>
+                                        <input type="email" id="Email" name="Email" class="form-control form-control-glass" placeholder="email@example.com" required />
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="Comment" class="form-label-premium"><i class="bi bi-chat-square-quote"></i>Nhận xét chi tiết</label>
+                                    <textarea id="Comment" name="Comment" rows="4" class="form-control form-control-glass" placeholder="Hãy viết cảm nhận của bạn về bộ phim này (nội dung, âm thanh, kỹ xảo, diễn xuất...)" required max-length="1000"></textarea>
+                                </div>
+
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-premium-gradient px-4 py-2" style="width: auto;">
+                                        <i class="bi bi-send-fill me-2"></i>Gửi đánh giá
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Style active tab pills background nicely
+            const tabElList = [].slice.call(document.querySelectorAll('button[data-bs-toggle="tab"]'));
+            tabElList.forEach(function (tabEl) {
+                tabEl.addEventListener('show.bs.tab', function (event) {
+                    // Remove custom active background from previously active tab
+                    const activeTab = event.relatedTarget;
+                    if(activeTab) {
+                        activeTab.style.background = 'transparent';
+                    }
+                });
+                
+                tabEl.addEventListener('shown.bs.tab', function (event) {
+                    const currentTab = event.target;
+                    // Apply premium active background
+                    currentTab.style.background = 'linear-gradient(135deg, var(--cinema-accent-cyan) 0%, var(--cinema-accent-blue) 100%)';
+                });
+            });
+
+            // Initial highlight for the active tab list button
+            const activeLink = document.querySelector('button[data-bs-toggle="tab"].active');
+            if (activeLink) {
+                activeLink.style.background = 'linear-gradient(135deg, var(--cinema-accent-cyan) 0%, var(--cinema-accent-blue) 100%)';
+            }
+        });
+    </script>
+}

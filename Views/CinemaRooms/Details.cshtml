@@ -1,0 +1,138 @@
+@model CinemaRoom
+
+@{
+    ViewData["Title"] = "Room Details";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-door-open-fill text-info me-2"></i>Room Details</h1>
+                <p class="text-muted mb-0 small">Explore the screening room profile and currently scheduled movies</p>
+            </div>
+        </div>
+
+        <!-- Glass card Details -->
+        <div class="glass-panel p-5 text-white mb-4" style="background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);">
+            <div class="row g-4 align-items-center">
+                <div class="col-12 col-md-3 text-center">
+                    <div class="d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, var(--cinema-accent-cyan) 0%, var(--cinema-accent-blue) 100%); font-size: 3rem; color: white; box-shadow: 0 10px 25px rgba(6, 182, 212, 0.45);">
+                        <i class="bi bi-projector-fill"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-md-9">
+                    <h2 class="fw-bold mb-3">@Model.Name</h2>
+                    
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-building text-info"></i>
+                            <span class="text-muted me-1">Cinema:</span>
+                            <span class="fw-semibold">@(Model.Cinema != null ? Model.Cinema.Name : "No Cinema Assigned")</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-people-fill text-info"></i>
+                            <span class="text-muted me-1">Seat Capacity:</span>
+                            <span class="fw-semibold">@Model.Capacity seats</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Assigned Movies Section -->
+            <div class="border-top border-secondary-subtle mt-5 pt-4">
+                <h4 class="text-white mb-4"><i class="bi bi-film text-info me-2"></i>Movies Screened in this Room</h4>
+                
+                @if (Model.Movies == null || !Model.Movies.Any())
+                {
+                    <div class="p-4 text-center rounded" style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1);">
+                        <i class="bi bi-film text-muted fs-2"></i>
+                        <p class="text-muted mb-0 mt-2">No movies currently scheduled for this room.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var movie in Model.Movies)
+                        {
+                            <div class="col-md-6 col-lg-4">
+                                <div class="p-3 rounded d-flex align-items-center gap-3" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
+                                    <img src="@movie.ImageURL" alt="@movie.Name" style="width: 50px; height: 75px; object-fit: cover; border-radius: 8px;" onerror="this.src='/images/default-poster.png'" />
+                                    <div>
+                                        <h6 class="text-white mb-1 fw-bold text-truncate" style="max-width: 160px;">@movie.Name</h6>
+                                        <p class="text-muted small mb-0"><i class="bi bi-clock-history me-1"></i>@movie.Duration min</p>
+                                        <a asp-controller="Movies" asp-action="Details" asp-route-id="@movie.Id" class="small text-info text-decoration-none">View Movie &rarr;</a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Seat Management Section -->
+            <div class="border-top border-secondary-subtle mt-5 pt-4">
+                <h4 class="text-white mb-4"><i class="bi bi-grid-3x3-gap-fill text-info me-2"></i>Seat Management</h4>
+
+                @{
+                    var seatCount = Model.Seats?.Count ?? 0;
+                }
+
+                <div class="d-flex flex-wrap gap-3 align-items-center mb-3">
+                    @if (seatCount > 0)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge" style="background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); border-radius: 30px; padding: 6px 14px;">
+                                <i class="bi bi-check-circle me-1"></i>@seatCount seats configured
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge" style="background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); border-radius: 30px; padding: 6px 14px;">
+                                <i class="bi bi-exclamation-triangle me-1"></i>No seats configured
+                            </span>
+                        </div>
+                    }
+
+                    @if (seatCount > 0)
+                    {
+                        <a class="btn btn-sm btn-premium-outline px-3" asp-controller="Seats" asp-action="Index" asp-route-roomId="@Model.Id">
+                            <i class="bi bi-eye me-1"></i>View Layout
+                        </a>
+                        <a class="btn btn-sm btn-outline-info px-3" asp-controller="Seats" asp-action="Manage" asp-route-roomId="@Model.Id">
+                            <i class="bi bi-gear-fill me-1"></i>Manage Seats
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-sm btn-premium-gradient px-3" asp-controller="Seats" asp-action="Create" asp-route-roomId="@Model.Id">
+                            <i class="bi bi-lightning-charge me-1"></i>Generate Seats
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <!-- Actions Row -->
+            <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-5">
+                <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                    <i class="bi bi-arrow-left-circle me-2"></i>Back to List
+                </a>
+                @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                {
+                    <a class="btn btn-premium-gradient px-5 py-2" asp-action="Edit" asp-route-id="@Model.Id" style="width: auto;">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Room
+                    </a>
+                }
+                
+            </div>
+        </div>
+
+    </div>
+</div>

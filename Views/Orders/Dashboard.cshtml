@@ -1,0 +1,306 @@
+@{
+    ViewData["Title"] = "Dashboard Overview";
+}
+
+@if (!(User.Identity.IsAuthenticated && User.IsInRole("Admin")))
+{
+    <div class="alert alert-danger text-center">Bạn không có quyền truy cập trang này.</div>
+    <a asp-controller="Movies" asp-action="Index" class="btn btn-outline-light">Quay về trang chủ</a>
+}
+else
+{
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-white fw-bold">Management Overview</h2>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Side: Metrics and Chart -->
+        <div class="col-xl-8 col-lg-7">
+            <!-- Row of 3 Large Metrics Cards -->
+            <div class="row g-3 mb-4">
+                <!-- Total Bookings -->
+                <div class="col-md-4">
+                    <div class="metric-card-large">
+                        <span class="metric-card-title">Total Bookings</span>
+                        <span class="metric-card-value">@ViewBag.TotalBookingsCount.ToString("N0")</span>
+                        <span class="metric-card-subtext">Today's Revenue:</span>
+                        <strong class="text-white">@ViewBag.TodayRevenue.ToString("N0") đ</strong>
+                        <div class="metric-card-icon-wrapper">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Revenue -->
+                <div class="col-md-4">
+                    <div class="metric-card-large">
+                        <span class="metric-card-title">Weekly Revenue</span>
+                        <span class="metric-card-value">@ViewBag.WeeklyRevenue.ToString("N0") đ</span>
+                        <div class="sparkline-container">
+                            <svg viewBox="0 0 200 60" class="sparkline-svg">
+                                <defs>
+                                    <linearGradient id="weeklySparklineGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#10b981" stop-opacity="0.3"/>
+                                        <stop offset="100%" stop-color="#10b981" stop-opacity="0.0"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 0 50 Q 25 40 50 52 T 100 25 T 150 45 T 200 18" fill="none" stroke="#10b981" stroke-width="2.5" />
+                                <path d="M 0 50 Q 25 40 50 52 T 100 25 T 150 45 T 200 18 L 200 60 L 0 60 Z" fill="url(#weeklySparklineGrad)" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Revenue -->
+                <div class="col-md-4">
+                    <div class="metric-card-large">
+                        <span class="metric-card-title">Monthly Revenue</span>
+                        <span class="metric-card-value">@ViewBag.MonthlyRevenue.ToString("N0") đ</span>
+                        <div class="sparkline-container">
+                            <svg viewBox="0 0 200 60" class="sparkline-svg">
+                                <defs>
+                                    <linearGradient id="monthlySparklineGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#10b981" stop-opacity="0.3"/>
+                                        <stop offset="100%" stop-color="#10b981" stop-opacity="0.0"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 0 45 Q 20 35 40 50 T 80 22 T 120 45 T 160 25 T 200 12" fill="none" stroke="#10b981" stroke-width="2.5" />
+                                <path d="M 0 45 Q 20 35 40 50 T 80 22 T 120 45 T 160 25 T 200 12 L 200 60 L 0 60 Z" fill="url(#monthlySparklineGrad)" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Overview Line Chart -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="chart-card shadow-lg">
+                        <h5 class="text-white fw-bold mb-4">Revenue Overview</h5>
+                        <div style="position: relative; height: 350px;">
+                            <canvas id="dashboardRevenueChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Status Grid (11 cards) -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="row g-3">
+                <!-- Movies -->
+                <div class="col-12">
+                    <a asp-controller="Movies" asp-action="Index" class="text-decoration-none">
+                        <div class="status-card card-movies">
+                            <span class="status-title">Movies</span>
+                            <span class="status-value">@ViewBag.MoviesCount<small>Active Movies</small></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Cinemas -->
+                <div class="col-6">
+                    <a asp-controller="Cinemas" asp-action="Index" class="text-decoration-none">
+                        <div class="status-card card-cinemas">
+                            <span class="status-title">Cinemas</span>
+                            <span class="status-value">@ViewBag.CinemasCount<small>Active</small></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Categories -->
+                <div class="col-6">
+                    <a asp-controller="Categories" asp-action="Index" class="text-decoration-none">
+                        <div class="status-card card-categories">
+                            <span class="status-title">Categories</span>
+                            <span class="status-value">@ViewBag.CategoriesCount<small>Active</small></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Vouchers -->
+                <div class="col-6">
+                    <a asp-controller="Vouchers" asp-action="Index" class="text-decoration-none">
+                        <div class="status-card card-vouchers">
+                            <span class="status-title">Vouchers</span>
+                            <span class="status-value">@ViewBag.VouchersCount<small>Vouchers</small></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Rooms -->
+                <div class="col-6">
+                    <a asp-controller="CinemaRooms" asp-action="Index" class="text-decoration-none">
+                        <div class="status-card card-rooms">
+                            <span class="status-title">Rooms</span>
+                            <span class="status-value">@ViewBag.CinemaRoomsCount<small>Rooms</small></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Bookings -->
+                <div class="col-6">
+                    <a asp-controller="Orders" asp-action="ManageBookings" class="text-decoration-none">
+                        <div class="status-card card-bookings">
+                            <span class="status-title">Bookings</span>
+                            <span class="status-value">@ViewBag.PendingBookingsCount<small>Pending</small></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Revenue -->
+                <div class="col-6">
+                    <a asp-controller="Orders" asp-action="Revenue" class="text-decoration-none">
+                        <div class="status-card card-revenue">
+                            <span class="status-title">Revenue</span>
+                            @{
+                                double ytd = ViewBag.YtdRevenue;
+                                string ytdText = ytd >= 1000000 ? (ytd / 1000000.0).ToString("N1") + "M YTD" : ytd.ToString("N0") + " YTD";
+                            }
+                            <span class="status-value">@ytdText</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Reports -->
+                <div class="col-6">
+                    <a asp-controller="Orders" asp-action="Reports" class="text-decoration-none">
+                        <div class="status-card card-reports">
+                            <span class="status-title">Reports</span>
+                            <span class="status-value">@ViewBag.MovieReviewsCount<small>Active</small></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Showtimes -->
+                <div class="col-6">
+                    <a asp-controller="Showtimes" asp-action="Index" class="text-decoration-none">
+                        <div class="status-card card-showtimes">
+                            <span class="status-title">Showtimes</span>
+                            <span class="status-value">@ViewBag.ShowtimesCount<small>Showtimes</small></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Producers -->
+                <div class="col-6">
+                    <a asp-controller="Producers" asp-action="Index" class="text-decoration-none">
+                        <div class="status-card card-producers">
+                            <span class="status-title">Producers</span>
+                            <span class="status-value">@ViewBag.ProducersCount<small>Active</small></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Actors -->
+                <div class="col-6">
+                    <a asp-controller="Actors" asp-action="Index" class="text-decoration-none">
+                        <div class="status-card card-actors">
+                            <span class="status-title">Actors</span>
+                            <span class="status-value">@ViewBag.ActorsCount<small>Pending</small></span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('dashboardRevenueChart').getContext('2d');
+        
+        // Dynamic labels and data passed from C# viewbag
+        const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.DailyRevenueLabels));
+        const data = @Html.Raw(ViewBag.DailyRevenueData);
+
+        // Calculate peak index for custom display
+        let maxVal = -1;
+        let maxIdx = -1;
+        for(let i=0; i<data.length; i++) {
+            if(data[i] > maxVal) {
+                maxVal = data[i];
+                maxIdx = i;
+            }
+        }
+
+        // Create gradient fill
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: data,
+                    borderColor: '#10b981',
+                    borderWidth: 3.5,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: function(context) {
+                        return context.dataIndex === maxIdx ? 7 : 5;
+                    },
+                    pointHoverRadius: 8,
+                    fill: true,
+                    backgroundColor: gradient,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                return context.raw.toLocaleString() + ' đ';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.65)',
+                            font: {
+                                family: "'Outfit', sans-serif",
+                                size: 12
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.65)',
+                            font: {
+                                family: "'Outfit', sans-serif",
+                                size: 12
+                            },
+                            callback: function(value) {
+                                return value.toLocaleString() + ' đ';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}

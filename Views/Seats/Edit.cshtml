@@ -1,0 +1,68 @@
+@model Seat
+
+@{
+    ViewData["Title"] = "Edit Seat";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-6 col-lg-5">
+
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" asp-route-roomId="@ViewBag.RoomId" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-pencil-square text-info me-2"></i>Edit Seat</h1>
+                <p class="text-muted mb-0 small">Row @Model.Row - Seat @Model.Number</p>
+            </div>
+        </div>
+
+        <div class="glass-panel p-5" style="background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px;">
+            <form asp-action="Edit" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="roomId" value="@ViewBag.RoomId" />
+                <input type="hidden" name="CinemaRoomId" value="@Model.CinemaRoomId" />
+
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label text-white fw-semibold"><i class="bi bi-text-left text-info me-1"></i>Row</label>
+                        <input asp-for="Row" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 12px; padding: 12px 16px;" />
+                        <span asp-validation-for="Row" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-white fw-semibold"><i class="bi bi-hash text-info me-1"></i>Number</label>
+                        <input asp-for="Number" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 12px; padding: 12px 16px;" />
+                        <span asp-validation-for="Number" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label text-white fw-semibold"><i class="bi bi-tag-fill text-info me-1"></i>Seat Type</label>
+                    <select asp-for="SeatType" class="form-control" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 12px; padding: 12px 16px;">
+                        <option value="1">Standard</option>
+                        <option value="2">VIP</option>
+                        <option value="3">Couple</option>
+                        <option value="4">Disabled</option>
+                    </select>
+                    <span asp-validation-for="SeatType" class="text-danger small"></span>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label text-white fw-semibold"><i class="bi bi-toggle-on text-info me-1"></i>Availability</label>
+                    <div class="form-check form-switch">
+                        <input asp-for="IsAvailable" class="form-check-input" type="checkbox" style="width: 2.5em; height: 1.3em;" />
+                        <label class="form-check-label text-muted ms-2">Available for booking</label>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-3 justify-content-end mt-4 pt-4 border-top border-secondary-subtle">
+                    <a asp-action="Index" asp-route-roomId="@ViewBag.RoomId" class="btn btn-premium-outline px-4 py-2">Cancel</a>
+                    <button type="submit" class="btn btn-premium-gradient px-4 py-2">
+                        <i class="bi bi-check-lg me-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>

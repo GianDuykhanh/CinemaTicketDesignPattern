@@ -1,0 +1,66 @@
+@model IEnumerable<CinemaRoom>
+
+@{
+    ViewData["Title"] = "Screening Rooms";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white"><i class="bi bi-door-open-fill text-info me-2"></i>Screening Rooms</h2>
+    </div>
+
+    <div class="row">
+        @if (Model == null || !Model.Any())
+        {
+            <div class="col-12 text-center my-5 py-5 glass-panel" style="background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px;">
+                <i class="bi bi-door-closed text-muted" style="font-size: 4rem;"></i>
+                <h4 class="text-white mt-3">No screening rooms found</h4>
+                <p class="text-muted small">Create a screening room to associate it with cinemas and movies.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var item in Model)
+            {
+                <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                    <div class="glass-panel h-100 p-4 text-center d-flex flex-column hover-lift" style="background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); transition: all 0.3s ease;">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="d-flex align-items-center justify-content-center" style="width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, var(--cinema-accent-cyan) 0%, var(--cinema-accent-blue) 100%); font-size: 1.8rem; color: white; box-shadow: 0 5px 15px rgba(6, 182, 212, 0.4);">
+                                <i class="bi bi-projector-fill"></i>
+                            </div>
+                        </div>
+
+                        <h5 class="font-weight-bold text-white mb-2" style="font-size: 1.25rem;">@Html.DisplayFor(modelItem => item.Name)</h5>
+                        
+                        <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+                            <span class="tech-badge" style="background: rgba(251, 191, 36, 0.12); color: var(--cinema-accent-gold); border: 1px solid rgba(251, 191, 36, 0.25); font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 30px; text-transform: uppercase;">
+                                <i class="bi bi-building"></i> @(item.Cinema != null ? item.Cinema.Name : "No Cinema")
+                            </span>
+                            <span class="tech-badge" style="background: rgba(6, 182, 212, 0.12); color: var(--cinema-accent-cyan); border: 1px solid rgba(6, 182, 212, 0.25); font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 30px; text-transform: uppercase;">
+                                <i class="bi bi-people-fill"></i> Capacity: @item.Capacity
+                            </span>
+                        </div>
+
+                        @if(User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                        {
+                            <div class="d-flex justify-content-center gap-3 mt-auto pt-3" style="border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                                <a class="btn cinema-action-btn" asp-action="Edit" asp-route-id="@item.Id" title="Edit">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <a class="btn cinema-action-btn" style="color: var(--cinema-accent-cyan);" asp-action="Details" asp-route-id="@item.Id" title="Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn cinema-action-btn" style="color: var(--cinema-accent-rose);" asp-action="Delete" asp-route-id="@item.Id" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        }
+                        
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_CreateItem", "CinemaRooms")

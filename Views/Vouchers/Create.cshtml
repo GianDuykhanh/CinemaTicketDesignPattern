@@ -1,0 +1,160 @@
+@model movieCinema.Models.Voucher
+
+@{
+    ViewData["Title"] = "Thêm mã giảm giá mới";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Quay lại">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-plus-circle text-warning me-2"></i>Thêm Mã Giảm Giá Mới</h1>
+                <p class="text-muted mb-0 small">Tạo mã voucher khuyến mãi mới cho khách hàng sử dụng khi đặt vé</p>
+            </div>
+        </div>
+
+        <!-- Glass card Form -->
+        <div class="cinema-form-glass-card">
+            @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+            {
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+
+                <div class="row g-4">
+                    <!-- Left: Voucher Live Preview -->
+                    <div class="col-12 col-md-4">
+                        <div class="preview-card p-4 text-center glass-panel h-100 d-flex flex-column align-items-center justify-content-center" style="background: rgba(255, 193, 7, 0.03); border: 1px dashed rgba(255, 193, 7, 0.25);">
+                            <div class="cinema-logo-ring d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning mb-3" style="width: 80px; height: 80px; font-size: 2.2rem; border-radius: 20px; border: 1px solid rgba(255, 193, 7, 0.25);">
+                                <i class="bi bi-gift-fill"></i>
+                            </div>
+                            <h4 class="text-white h5 fw-bold mb-1" id="PreviewCode">VOUCHER_CODE</h4>
+                            <p class="text-warning small mb-3 fw-bold" id="PreviewValue">Giảm 0 đ</p>
+                            <p class="text-muted small mb-0" id="PreviewRules" style="line-height: 1.4;">Đơn tối thiểu: 0 đ</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Input Fields -->
+                    <div class="col-12 col-md-8 d-flex flex-column gap-3">
+                        <div class="form-group">
+                            <label asp-for="Code" class="form-label-premium"><i class="bi bi-gift-fill"></i> Mã Voucher</label>
+                            <input asp-for="Code" class="form-control form-control-glass" placeholder="Ví dụ: GIAM50K, KM2026" id="InputCode" autocomplete="off" required />
+                            <span asp-validation-for="Code" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12 col-sm-6">
+                                <div class="form-group">
+                                    <label asp-for="IsPercentage" class="form-label-premium"><i class="bi bi-percent"></i> Loại giảm giá</label>
+                                    <select asp-for="IsPercentage" class="form-control form-control-glass" id="InputIsPercentage">
+                                        <option value="false">Giảm giá tiền mặt (đ)</option>
+                                        <option value="true">Giảm giá phần trăm (%)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6" id="DiscountAmountBox">
+                                <div class="form-group">
+                                    <label asp-for="DiscountAmount" class="form-label-premium"><i class="bi bi-currency-dollar"></i> Số tiền giảm (đ)</label>
+                                    <input asp-for="DiscountAmount" type="number" class="form-control form-control-glass" id="InputDiscountAmount" value="0" />
+                                    <span asp-validation-for="DiscountAmount" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6" id="DiscountPercentageBox" style="display:none;">
+                                <div class="form-group">
+                                    <label asp-for="DiscountPercentage" class="form-label-premium"><i class="bi bi-percent"></i> Phần trăm giảm (%)</label>
+                                    <input asp-for="DiscountPercentage" type="number" class="form-control form-control-glass" id="InputDiscountPercentage" value="0" />
+                                    <span asp-validation-for="DiscountPercentage" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12 col-sm-6">
+                                <div class="form-group">
+                                    <label asp-for="MinOrderAmount" class="form-label-premium"><i class="bi bi-cart-check-fill"></i> Đơn hàng tối thiểu (đ)</label>
+                                    <input asp-for="MinOrderAmount" type="number" class="form-control form-control-glass" id="InputMinOrderAmount" value="0" />
+                                    <span asp-validation-for="MinOrderAmount" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6">
+                                <div class="form-group">
+                                    <label asp-for="ExpiryDate" class="form-label-premium"><i class="bi bi-calendar-date"></i> Ngày hết hạn</label>
+                                    <input asp-for="ExpiryDate" type="datetime-local" class="form-control form-control-glass" required id="InputExpiryDate" value="@DateTime.Now.AddDays(7).ToString("yyyy-MM-ddTHH:mm")" />
+                                    <span asp-validation-for="ExpiryDate" class="text-danger small mt-1 d-block fw-semibold"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-2">
+                            <div class="form-check form-switch">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" id="InputIsActive" checked />
+                                <label asp-for="IsActive" class="form-check-label text-muted small cursor-pointer" for="InputIsActive">Kích hoạt mã giảm giá ngay lập tức</label>
+                            </div>
+                        </div>
+
+                        <!-- Buttons Row -->
+                        <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-3">
+                            <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                                <i class="bi bi-arrow-left me-2"></i>Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-premium-gradient px-5 py-2" style="width: auto; background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
+                                <i class="bi bi-plus-circle-fill me-2"></i>Tạo Voucher
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            }
+            else
+            {
+                <div class="alert alert-danger mt-4">Bạn không có quyền truy cập trang này.</div>
+                <a asp-action="Index" class="btn btn-outline-light">Quay lại</a>
+            }
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            function updatePreview() {
+                const code = $("#InputCode").val();
+                $("#PreviewCode").text(code ? code.toUpperCase() : "VOUCHER_CODE");
+
+                const isPercentage = $("#InputIsPercentage").val() === "true";
+                if (isPercentage) {
+                    $("#DiscountAmountBox").hide();
+                    $("#DiscountPercentageBox").show();
+                    const percent = $("#InputDiscountPercentage").val() || 0;
+                    $("#PreviewValue").text("Giảm " + percent + "%");
+                } else {
+                    $("#DiscountAmountBox").show();
+                    $("#DiscountPercentageBox").hide();
+                    const amount = parseFloat($("#InputDiscountAmount").val() || 0);
+                    $("#PreviewValue").text("Giảm " + amount.toLocaleString('vi-VN') + " đ");
+                }
+
+                const minOrder = parseFloat($("#InputMinOrderAmount").val() || 0);
+                $("#PreviewRules").text("Đơn tối thiểu: " + minOrder.toLocaleString('vi-VN') + " đ");
+            }
+
+            $("#InputCode, #InputDiscountAmount, #InputDiscountPercentage, #InputMinOrderAmount, #InputIsPercentage").on("input change", updatePreview);
+            $("#InputIsPercentage").on("change", function() {
+                // reset values
+                if ($(this).val() === "true") {
+                    $("#InputDiscountAmount").val(0);
+                } else {
+                    $("#InputDiscountPercentage").val(0);
+                }
+                updatePreview();
+            });
+
+            updatePreview();
+        });
+    </script>
+}

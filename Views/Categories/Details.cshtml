@@ -1,0 +1,96 @@
+@model Category
+
+@{
+    ViewData["Title"] = "Category Details";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-tag-fill text-info me-2"></i>Category Details</h1>
+                <p class="text-muted mb-0 small">Detailed description and catalog of movies under this category</p>
+            </div>
+        </div>
+
+        <!-- Glass Profile Card -->
+        <div class="cinema-profile-glass-card p-5 mb-5">
+            <div class="row g-5">
+
+                <!-- Left Column: Icon and General Name -->
+                <div class="col-12 col-md-4 text-center border-end border-secondary-subtle pe-md-5">
+                    <div class="cinema-logo-ring d-inline-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info mb-4" style="width: 100px; height: 100px; font-size: 2.8rem; border-radius: 24px; border: 1px solid rgba(13, 202, 240, 0.25);">
+                        <i class="bi bi-tag-fill"></i>
+                    </div>
+                    <h2 class="h3 fw-bold text-white mb-2">@Model.Name</h2>
+                    <span class="badge bg-secondary-subtle text-light small px-3 py-2">ID Ref: #@Model.Id</span>
+                </div>
+
+                <!-- Right Column: Description -->
+                <div class="col-12 col-md-8 d-flex flex-column justify-content-between">
+                    <div>
+                        <h3 class="cinema-bio-title"><i class="bi bi-info-circle me-2"></i>Description</h3>
+                        <p class="cinema-bio-text" style="font-size: 1.1rem; line-height: 1.7; color: rgba(255,255,255,0.75);">@Model.Description</p>
+                    </div>
+
+                    <!-- Actions Buttons -->
+                    <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 mt-4">
+                        <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                            <i class="bi bi-arrow-left me-2"></i>Back to List
+                        </a>
+
+                        @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                        {
+                            <a class="btn btn-premium-gradient px-5 py-2" asp-action="Edit" asp-route-id="@Model.Id" style="width: auto;">
+                                <i class="bi bi-pencil-square me-2"></i>Edit Category
+                            </a>
+                        }
+                        
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Related Movies Section -->
+        <h3 class="h4 text-white fw-bold mb-4"><i class="bi bi-film text-info me-2"></i>Movies under @Model.Name</h3>
+        @if (Model.Movies != null && Model.Movies.Any())
+        {
+            <div class="row">
+                @foreach (var movie in Model.Movies)
+                {
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="glass-panel p-3 h-100 d-flex gap-3 hover-lift">
+                            <img src="@movie.ImageURL" alt="@movie.Name" style="width: 80px; height: 120px; object-fit: cover; border-radius: 8px;" onerror="this.src='/images/default-poster.png';" />
+                            <div class="d-flex flex-column justify-content-between flex-grow-1">
+                                <div>
+                                    <h5 class="text-white fw-bold mb-1" style="font-size: 0.95rem;">@movie.Name</h5>
+                                    <p class="text-muted small mb-0" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">@movie.Description</p>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-info fw-bold small">@movie.Price.ToString("N2") đ</span>
+                                    <a class="btn btn-sm btn-premium-outline px-2 py-0" asp-controller="Movies" asp-action="Details" asp-route-id="@movie.Id" style="font-size: 0.75rem;">
+                                        View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="glass-panel p-5 text-center text-muted">
+                <i class="bi bi-film fs-2 mb-3 d-block text-secondary"></i>
+                <p class="mb-0">No movies found in this category yet.</p>
+            </div>
+        }
+
+    </div>
+</div>

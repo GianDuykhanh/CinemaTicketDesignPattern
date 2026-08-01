@@ -1,0 +1,85 @@
+@model Category
+
+@{
+    ViewData["Title"] = "Update Category";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-pencil-square text-info me-2"></i>Update Category</h1>
+                <p class="text-muted mb-0 small">Modify classification categories for films</p>
+            </div>
+        </div>
+
+        <!-- Glass card Form -->
+        <div class="cinema-form-glass-card">
+            <form asp-action="Edit">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+                <input type="hidden" asp-for="Id" />
+
+                <div class="row g-4">
+                    <!-- Left: Category Live Preview -->
+                    <div class="col-12 col-md-4">
+                        <div class="preview-card p-4 text-center">
+                            <div class="cinema-logo-ring d-inline-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info mb-3" style="width: 80px; height: 80px; font-size: 2.2rem; border-radius: 20px; border: 1px solid rgba(13, 202, 240, 0.25);">
+                                <i class="bi bi-tag-fill"></i>
+                            </div>
+                            <h4 class="text-white h5 fw-bold mb-1" id="PreviewName">@Model.Name</h4>
+                            <p class="text-muted small mb-0" id="PreviewDesc" style="line-height: 1.4;">@Model.Description</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Input Fields -->
+                    <div class="col-12 col-md-8 d-flex flex-column gap-3">
+                        <div class="form-group">
+                            <label asp-for="Name" class="form-label-premium"><i class="bi bi-tag-fill"></i>Category Name</label>
+                            <input asp-for="Name" class="form-control form-control-glass" placeholder="Enter category name (e.g. Science Fiction)" id="InputName" autocomplete="off" />
+                            <span asp-validation-for="Name" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Description" class="form-label-premium"><i class="bi bi-file-earmark-text-fill"></i>Description</label>
+                            <textarea asp-for="Description" class="form-control form-control-glass" placeholder="Enter details about this genre..." id="InputDesc" rows="4"></textarea>
+                            <span asp-validation-for="Description" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <!-- Buttons Row -->
+                        <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-3">
+                            <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                                <i class="bi bi-arrow-left me-2"></i>Back to List
+                            </a>
+                            <button type="submit" class="btn btn-premium-gradient px-5 py-2" style="width: auto;">
+                                <i class="bi bi-pencil-square-fill me-2"></i>Update Category
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Live inputs preview
+            $("#InputName").on("input", function () {
+                var val = $(this).val();
+                $("#PreviewName").text(val ? val : "Category Name");
+            });
+
+            $("#InputDesc").on("input", function () {
+                var val = $(this).val();
+                $("#PreviewDesc").text(val ? val : "Enter descriptions to preview category details");
+            });
+        });
+    </script>
+}

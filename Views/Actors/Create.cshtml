@@ -1,0 +1,101 @@
+@model Actor
+
+@{
+    ViewData["Title"] = "Add a new actor";
+}
+
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-person-plus-fill text-info me-2"></i>Create Actor Profile</h1>
+                <p class="text-muted mb-0 small">Create a new talent profile for the premium movie directory</p>
+            </div>
+        </div>
+
+        <!-- Glass card Form -->
+        <div class="form-glass-card">
+            <form asp-action="Create" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+
+                <div class="row g-4">
+                    <!-- Left: Profile Picture Preview -->
+                    <div class="col-12 col-md-4">
+                        <div class="preview-card">
+                            <div class="avatar-preview-ring" id="previewRing">
+                                <img class="avatar-preview-img" id="ProfilePicturePreview" src="/images/default-avatar.png" alt="Avatar Preview" onerror="this.onerror=null;this.src='/images/default-avatar.png';" />
+                            </div>
+                            <h4 class="text-white h6 fw-bold mb-1">Live Profile Preview</h4>
+                            <p class="text-muted small mb-0" style="line-height: 1.4;">Image updates in real-time when a local file is selected</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Input Fields -->
+                    <div class="col-12 col-md-8 d-flex flex-column gap-3">
+                        <div class="form-group">
+                            <label class="form-label-premium"><i class="bi bi-image"></i>Profile Photo</label>
+                            <input type="file" name="profilePicture" id="profilePictureFile" class="form-control form-control-glass" accept="image/*" />
+                            <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Select a high-quality JPG, PNG, or WEBP image file.</div>
+                            <span asp-validation-for="ProfilePictureURL" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="FullName" class="form-label-premium"><i class="bi bi-person-fill"></i>Full Name</label>
+                            <input asp-for="FullName" class="form-control form-control-glass" placeholder="Enter actor's full name" autocomplete="off" />
+                            <span asp-validation-for="FullName" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Bio" class="form-label-premium"><i class="bi bi-file-earmark-person-fill"></i>Biography</label>
+                            <textarea asp-for="Bio" class="form-control form-control-glass" placeholder="Enter the biography details of the actor..."></textarea>
+                            <span asp-validation-for="Bio" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <!-- Buttons Row -->
+                        <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-3">
+                            <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                                <i class="bi bi-list-stars me-2"></i>Show All
+                            </a>
+                            <button type="submit" class="btn btn-premium-gradient px-5 py-2" style="width: auto;">
+                                <i class="bi bi-check-circle-fill me-2"></i>Create Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+            // Handle file upload live preview
+            $("#profilePictureFile").on("change", function () {
+                var preview = document.getElementById('ProfilePicturePreview');
+                var ring = document.getElementById('previewRing');
+                var file = this.files[0];
+                
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        preview.src = e.target.result;
+                        ring.style.boxShadow = "0 10px 30px rgba(6, 182, 212, 0.6)";
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.src = "/images/default-avatar.png";
+                    ring.style.boxShadow = "0 10px 30px rgba(6, 182, 212, 0.25)";
+                }
+            });
+        });
+    </script>
+}
+

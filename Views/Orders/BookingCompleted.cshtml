@@ -1,0 +1,74 @@
+@{
+    ViewData["Title"] = "Đặt Vé Thành Công";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="form-glass-card p-4 text-center">
+            <!-- Animated Success Mark -->
+            <div class="success-checkmark mb-4">
+                <i class="bi bi-check-lg"></i>
+            </div>
+
+            <h2 class="text-white fw-bold h3 mb-2">Đặt Vé Thành Công!</h2>
+            <p class="text-muted small mb-4">Cảm ơn bạn đã tin tưởng dịch vụ của MovieCinema. Dưới đây là thông tin vé của bạn.</p>
+
+            <!-- Cinematic Ticket Box -->
+            <div class="text-start p-4 mb-4 rounded border border-light-subtle position-relative overflow-hidden" 
+                 style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(7, 10, 19, 0.85) 100%); --bs-border-color: rgba(255, 255, 255, 0.08);">
+                
+                <!-- Ticket Notch Left & Right -->
+                <div style="position: absolute; left: -10px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border-radius: 50%; background: var(--cinema-bg); border-right: 1px solid rgba(255,255,255,0.08);"></div>
+                <div style="position: absolute; right: -10px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border-radius: 50%; background: var(--cinema-bg); border-left: 1px solid rgba(255,255,255,0.08);"></div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom border-secondary-subtle">
+                    <span class="fw-bold text-uppercase tracking-wider text-cyan" style="font-size:0.75rem; letter-spacing: 1px;">VÉ XEM PHIM CHI TIẾT</span>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle text-uppercase text-xs" style="font-size: 0.65rem;">Đã Thanh Toán</span>
+                </div>
+
+                <h3 class="h5 text-white fw-bold mb-3">@ViewBag.MovieName</h3>
+
+                <div class="row g-3" style="font-size:0.85rem;">
+                    <div class="col-6">
+                        <span class="text-muted d-block">Rạp chiếu</span>
+                        <strong class="text-white">@ViewBag.CinemaName</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Phòng chiếu</span>
+                        <strong class="text-white">@ViewBag.RoomName</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Suất chiếu</span>
+                        <strong class="text-warning">@(((DateTime)ViewBag.StartTime).ToString("dd/MM/yyyy HH:mm"))</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">Vị trí ghế</span>
+                        <strong class="text-cyan">@ViewBag.SelectedSeats</strong>
+                    </div>
+                    <div class="col-12 border-top border-secondary-subtle pt-3 mt-3">
+                        <span class="text-muted d-block">Tên khách hàng</span>
+                        <strong class="text-white">@ViewBag.CustomerName (@ViewBag.CustomerEmail)</strong>
+                    </div>
+                </div>
+
+                <!-- Total Row -->
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-dashed border-secondary-subtle">
+                    <span class="text-muted small text-uppercase fw-bold">Tổng tiền</span>
+                    <span class="text-warning fw-extrabold" style="font-size:1.25rem;">@(((double)ViewBag.TotalPrice).ToString("N0")) đ</span>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="d-flex gap-3 justify-content-center">
+                <a asp-controller="Movies" asp-action="Index" class="btn btn-premium-outline px-4" style="width: auto;">
+                    <i class="bi bi-house-door me-2"></i>Trang Chủ
+                </a>
+                <a asp-controller="Orders" asp-action="Index" asp-route-searchEmail="@ViewBag.CustomerEmail" class="btn btn-premium-gradient px-4" style="width: auto;">
+                    <i class="bi bi-list-check me-2"></i>Lịch Sử Đặt Vé
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+

@@ -1,0 +1,106 @@
+@model Cinema
+
+@{
+    ViewData["Title"] = "Add a new cinema";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3 mb-5 pb-4 border-bottom border-secondary-subtle">
+            <a asp-action="Index" class="btn btn-sm btn-premium-outline px-3 d-flex align-items-center justify-content-center" style="width: auto; height: 38px; border-radius: 10px;" title="Go back to list">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h2 fw-bold text-white mb-1"><i class="bi bi-plus-circle text-info me-2"></i>Add a New Cinema</h1>
+                <p class="text-muted mb-0 small">Create a new partner cinema profile in the directory</p>
+            </div>
+        </div>
+
+        <!-- Glass card Form -->
+        <div class="cinema-form-glass-card">
+            @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+            {
+                <form asp-action="Create" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+
+                <div class="row g-4">
+                    <!-- Left: Logo Live Preview -->
+                    <div class="col-12 col-md-4">
+                        <div class="preview-card">
+                            <div class="cinema-avatar-preview-ring" id="previewRing">
+                                <img class="cinema-avatar-preview-img" id="CinemaLogoPreview" src="/images/default-logo.png" alt="Cinema Logo Preview" onerror="this.onerror=null;this.src='/images/default-logo.png';" />
+                            </div>
+                            <h4 class="text-white h6 fw-bold mb-1">Live Logo Preview</h4>
+                            <p class="text-muted small mb-0" style="line-height: 1.4;">Shows uploaded image preview instantly</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Input Fields -->
+                    <div class="col-12 col-md-8 d-flex flex-column gap-3">
+                        <div class="form-group">
+                            <label class="form-label-premium"><i class="bi bi-image"></i>Cinema Logo</label>
+                            <input type="file" name="logoFile" id="logoFile" class="form-control form-control-glass" accept="image/*" />
+                            <span asp-validation-for="Logo" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Name" class="form-label-premium"><i class="bi bi-building"></i>Cinema Name</label>
+                            <input asp-for="Name" class="form-control form-control-glass" placeholder="Enter cinema name (e.g. Cineplex IMAX)" autocomplete="off" />
+                            <span asp-validation-for="Name" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Description" class="form-label-premium"><i class="bi bi-file-earmark-text-fill"></i>Description</label>
+                            <textarea asp-for="Description" class="form-control form-control-glass" placeholder="Enter the description details of the cinema..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger small mt-1 d-block fw-semibold"></span>
+                        </div>
+
+                        <!-- Buttons Row -->
+                        <div class="d-flex flex-sm-row flex-column gap-3 justify-content-end pt-4 border-top border-secondary-subtle mt-3">
+                            <a class="btn btn-premium-outline px-4 py-2" asp-action="Index" style="width: auto;">
+                                <i class="bi bi-list-stars me-2"></i>Show All
+                            </a>
+                            <button type="submit" class="btn btn-cinema-gradient px-5 py-2" style="width: auto;">
+                                <i class="bi bi-plus-circle-fill me-2"></i>Create Cinema
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            }
+            else
+            {
+                <div class="alert alert-danger mt-4">Bạn không có quyền truy cập trang này.</div>
+                <a asp-action="Index" class="btn btn-outline-light">Quay lại</a>
+            }
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Handle file upload live preview
+            $("#logoFile").on("change", function () {
+                var preview = document.getElementById('CinemaLogoPreview');
+                var ring = document.getElementById('previewRing');
+                var file = this.files[0];
+                
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        preview.src = e.target.result;
+                        ring.style.boxShadow = "0 10px 30px rgba(251, 191, 36, 0.5)";
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.src = "/images/default-logo.png";
+                    ring.style.boxShadow = "0 10px 30px rgba(251, 191, 36, 0.25)";
+                }
+            });
+        });
+    </script>
+}

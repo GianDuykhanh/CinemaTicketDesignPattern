@@ -1,0 +1,411 @@
+@{
+    ViewData["Title"] = "Thống kê doanh thu";
+}
+
+<style>
+    .bg-dark-glass {
+        background: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(10px);
+    }
+    .border-glass {
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    .metric-card-premium {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+    }
+    .metric-card-premium:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+    .metric-icon-box {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .chart-container-premium {
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 1.5rem;
+        backdrop-filter: blur(10px);
+    }
+    .btn-movie-gradient {
+        background: linear-gradient(90deg, #ff2a5f, #00f0ff);
+        border: none;
+        color: white;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .btn-movie-gradient:hover {
+        background: linear-gradient(90deg, #e01f4f, #00ced1);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 240, 255, 0.4);
+        color: white;
+    }
+</style>
+
+@if (!(User.Identity.IsAuthenticated && User.IsInRole("Admin")))
+{
+    <div class="alert alert-danger text-center">Bạn không có quyền truy cập trang này.</div>
+    <a asp-controller="Movies" asp-action="Index" class="btn btn-outline-light">Quay về trang chủ</a>
+}
+else
+{
+<div class="row">
+    <div class="col-12">
+        <!-- Title Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="metric-icon-box" style="background: linear-gradient(135deg, #00f0ff, #ff2a5f); color: white;">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 fw-bold text-white">Quản lý Doanh Thu</h2>
+                    <p class="text-muted mb-0" style="font-size:0.875rem;">Phân tích thống kê doanh thu theo ngày, tháng, phim và chi nhánh rạp</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Range Filter Form -->
+        <div class="glass-panel p-4 mb-4 rounded-4 border-glass shadow bg-dark-glass">
+            <form method="get" asp-action="Revenue" class="row g-3 align-items-end justify-content-center">
+                <div class="col-md-4 col-sm-6">
+                    <label for="startDate" class="form-label text-white-50 small mb-1"><i class="bi bi-calendar-event me-1"></i>Từ ngày</label>
+                    <input type="date" id="startDate" name="startDate" class="form-control bg-dark-glass text-white border-glass" value="@ViewBag.StartDate" />
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <label for="endDate" class="form-label text-white-50 small mb-1"><i class="bi bi-calendar-check me-1"></i>Đến ngày</label>
+                    <input type="date" id="endDate" name="endDate" class="form-control bg-dark-glass text-white border-glass" value="@ViewBag.EndDate" />
+                </div>
+                <div class="col-md-2 col-sm-12 d-grid">
+                    <button type="submit" class="btn btn-movie-gradient py-2 rounded-pill"><i class="bi bi-funnel-fill me-1"></i> Thống kê</button>
+                </div>
+                @if (ViewBag.StartDate != DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd") || ViewBag.EndDate != DateTime.Today.ToString("yyyy-MM-dd"))
+                {
+                    <div class="col-md-2 col-sm-12 d-grid">
+                        <a href="@Url.Action("Revenue")" class="btn btn-outline-secondary py-2 rounded-pill"><i class="bi bi-arrow-counterclockwise me-1"></i> Mặc định</a>
+                    </div>
+                }
+            </form>
+        </div>
+
+        <!-- Metric Cards Row -->
+        <div class="row g-4 mb-4">
+            <!-- Net Revenue -->
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="metric-card-premium p-4 d-flex align-items-center gap-3">
+                    <div class="metric-icon-box bg-info-subtle text-info" style="background: rgba(0, 240, 255, 0.1) !important;">
+                        <i class="bi bi-currency-dollar"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Doanh thu thuần</span>
+                        <strong class="text-info fs-3">@(((double)ViewBag.NetRevenue).ToString("N0")) đ</strong>
+                    </div>
+                </div>
+            </div>
+            <!-- Tickets Sold -->
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="metric-card-premium p-4 d-flex align-items-center gap-3">
+                    <div class="metric-icon-box bg-success-subtle text-success" style="background: rgba(40, 167, 69, 0.1) !important;">
+                        <i class="bi bi-ticket-perforated"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Số vé bán ra</span>
+                        <strong class="text-success fs-3">@ViewBag.TotalTickets vé</strong>
+                    </div>
+                </div>
+            </div>
+            <!-- Total Orders -->
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="metric-card-premium p-4 d-flex align-items-center gap-3">
+                    <div class="metric-icon-box bg-warning-subtle text-warning" style="background: rgba(255, 193, 7, 0.1) !important;">
+                        <i class="bi bi-cart-check"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Số đơn hàng</span>
+                        <strong class="text-warning fs-3">@ViewBag.TotalOrders đơn</strong>
+                    </div>
+                </div>
+            </div>
+            <!-- Average Order Value -->
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="metric-card-premium p-4 d-flex align-items-center gap-3">
+                    <div class="metric-icon-box bg-danger-subtle text-danger" style="background: rgba(255, 42, 95, 0.1) !important;">
+                        <i class="bi bi-calculator"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Giá trị trung bình</span>
+                        <strong class="text-danger fs-4">@(((double)ViewBag.AvgOrderVal).ToString("N0")) đ</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid Row 1 (Daily Line Chart & Monthly Bar Chart) -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8">
+                <div class="chart-container-premium shadow">
+                    <h5 class="text-white fw-bold mb-3"><i class="bi bi-calendar-range text-info me-2"></i>Xu hướng doanh thu theo ngày</h5>
+                    <div style="position: relative; height: 320px;">
+                        <canvas id="dailyRevenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-container-premium shadow">
+                    <h5 class="text-white fw-bold mb-3"><i class="bi bi-calendar3 text-warning me-2"></i>Doanh thu theo tháng</h5>
+                    <div style="position: relative; height: 320px;">
+                        <canvas id="monthlyRevenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid Row 2 (Movie Horizontal Bar Chart & Cinema Doughnut Share Chart) -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-7">
+                <div class="chart-container-premium shadow">
+                    <h5 class="text-white fw-bold mb-3"><i class="bi bi-film text-danger me-2"></i>Doanh thu theo Phim (Top-selling)</h5>
+                    <div style="position: relative; height: 320px;">
+                        <canvas id="movieRevenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="chart-container-premium shadow">
+                    <h5 class="text-white fw-bold mb-3"><i class="bi bi-building-gear text-success me-2"></i>Tỷ lệ doanh thu theo Rạp</h5>
+                    <div style="position: relative; height: 320px; display: flex; justify-content: center; align-items: center;">
+                        <canvas id="cinemaRevenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Detail Tables -->
+        <div class="row g-4">
+            <!-- Movie sales table -->
+            <div class="col-lg-6">
+                <div class="glass-panel p-4 border-glass rounded-4 bg-dark-glass">
+                    <h5 class="text-white fw-bold mb-3"><i class="bi bi-list-stars text-info me-2"></i>Bảng thống kê doanh thu theo Phim</h5>
+                    <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                        <table class="table table-hover text-white align-middle mb-0">
+                            <thead>
+                                <tr class="text-white-50 border-secondary small">
+                                    <th scope="col">Tên Phim</th>
+                                    <th scope="col" class="text-center">Số vé bán</th>
+                                    <th scope="col" class="text-end">Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in ViewBag.MovieSalesList)
+                                {
+                                    <tr class="border-secondary small">
+                                        <td class="fw-bold">@item.MovieName</td>
+                                        <td class="text-center text-white-50">@item.TicketsSold</td>
+                                        <td class="text-end text-info fw-bold">@(((double)item.Revenue).ToString("N0")) đ</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cinema sales table -->
+            <div class="col-lg-6">
+                <div class="glass-panel p-4 border-glass rounded-4 bg-dark-glass">
+                    <h5 class="text-white fw-bold mb-3"><i class="bi bi-list-columns-reverse text-success me-2"></i>Bảng thống kê doanh thu theo Rạp</h5>
+                    <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                        <table class="table table-hover text-white align-middle mb-0">
+                            <thead>
+                                <tr class="text-white-50 border-secondary small">
+                                    <th scope="col">Tên Rạp</th>
+                                    <th scope="col" class="text-center">Số vé bán</th>
+                                    <th scope="col" class="text-end">Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in ViewBag.CinemaSalesList)
+                                {
+                                    <tr class="border-secondary small">
+                                        <td class="fw-bold text-white-50">@item.CinemaName</td>
+                                        <td class="text-center text-white-50">@item.TicketsSold</td>
+                                        <td class="text-end text-success fw-bold">@(((double)item.Revenue).ToString("N0")) đ</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Chart options global configuration
+        Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.08)';
+
+        // 1. Daily trend chart (Line Chart)
+        const dailyLabels = @Html.Raw(ViewBag.DailyLabels);
+        const dailyData = @Html.Raw(ViewBag.DailyRevenue);
+        
+        new Chart(document.getElementById('dailyRevenueChart'), {
+            type: 'line',
+            data: {
+                labels: dailyLabels,
+                datasets: [{
+                    label: 'Doanh thu (VND)',
+                    data: dailyData,
+                    borderColor: '#00f0ff',
+                    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#00f0ff',
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return (value / 1000).toLocaleString() + 'k';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 2. Monthly Revenue Chart (Bar Chart)
+        const monthlyLabels = @Html.Raw(ViewBag.MonthlyLabels);
+        const monthlyData = @Html.Raw(ViewBag.MonthlyRevenue);
+
+        new Chart(document.getElementById('monthlyRevenueChart'), {
+            type: 'bar',
+            data: {
+                labels: monthlyLabels,
+                datasets: [{
+                    data: monthlyData,
+                    backgroundColor: '#ffc107',
+                    borderRadius: 6,
+                    maxBarThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return (value / 1000).toLocaleString() + 'k';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 3. Movie-wise Revenue Chart (Horizontal Bar Chart)
+        const movieLabels = @Html.Raw(ViewBag.MovieLabels);
+        const movieData = @Html.Raw(ViewBag.MovieRevenue);
+
+        new Chart(document.getElementById('movieRevenueChart'), {
+            type: 'bar',
+            data: {
+                labels: movieLabels,
+                datasets: [{
+                    data: movieData,
+                    backgroundColor: 'rgba(255, 42, 95, 0.85)',
+                    borderColor: '#ff2a5f',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    maxBarThickness: 25
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return (value / 1000).toLocaleString() + 'k';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 4. Cinema branch Revenue Share (Doughnut Chart)
+        const cinemaLabels = @Html.Raw(ViewBag.CinemaLabels);
+        const cinemaData = @Html.Raw(ViewBag.CinemaRevenue);
+
+        new Chart(document.getElementById('cinemaRevenueChart'), {
+            type: 'doughnut',
+            data: {
+                labels: cinemaLabels,
+                datasets: [{
+                    data: cinemaData,
+                    backgroundColor: [
+                        '#28a745',
+                        '#00f0ff',
+                        '#ff2a5f',
+                        '#ffc107',
+                        '#6f42c1',
+                        '#fd7e14'
+                    ],
+                    borderWidth: 1,
+                    borderColor: 'rgba(0,0,0,0.5)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 12
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    </script>
+}

@@ -1,0 +1,13 @@
+@model string
+
+@if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+{
+    <div class="create-item-container">
+        <a asp-controller="@Model" asp-action="Create" class="btn-premium-gradient shadow-sm d-flex align-items-center justify-content-center">
+            <i class="bi bi-plus-circle me-2"></i> Add New
+        </a>
+    </div>
+}
+
+
+

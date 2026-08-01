@@ -1,0 +1,408 @@
+@using movieCinema.Data.ViewModels;
+@model ShoppingCartVM
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+@{
+    ViewData["Title"] = "Shopping Cart";
+    var rememberedEmail = HttpContextAccessor.HttpContext?.Request.Cookies["CustomerEmail"];
+    var rememberedName = HttpContextAccessor.HttpContext?.Request.Cookies["CustomerName"];
+}
+
+<div class="row">
+    <div class="col-12">
+        <!-- Page Header -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="cart-header-icon">
+                <i class="bi bi-cart3"></i>
+            </div>
+            <div>
+                <h2 class="mb-0 fw-bold text-white">Shopping Cart</h2>
+                <p class="text-muted mb-0" style="font-size:0.875rem;">Review your selected tickets before checkout</p>
+            </div>
+        </div>
+
+        @if (!Model.ShoppingCart.ShoppingCartItems.Any())
+        {
+            <div class="cart-empty-card text-center py-5">
+                <div class="cart-empty-icon mb-3">
+                    <i class="bi bi-cart-x"></i>
+                </div>
+                <h4 class="text-white mb-2">Your cart is empty</h4>
+                <p class="text-muted mb-4">Browse our movies and add some tickets to get started</p>
+                <a class="btn btn-movie-gradient" asp-controller="Movies" asp-action="Index">
+                    <i class="bi bi-film me-2"></i>Browse Movies
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+                <!-- Cart Items -->
+                <div class="col-lg-8">
+                    <div class="cart-items-card glass-panel">
+                        <div class="cart-items-header">
+                            <h5 class="mb-0 fw-bold text-white">
+                                <i class="bi bi-ticket-perforated me-2" style="color:var(--cinema-accent-cyan)"></i>
+                                Selected Tickets
+                            </h5>
+                            <span class="cart-count-badge">@Model.ShoppingCart.ShoppingCartItems.Sum(x => x.Amount) tickets</span>
+                        </div>
+
+                        <div class="cart-items-body">
+                            @foreach (var item in Model.ShoppingCart.ShoppingCartItems)
+                            {
+                                <div class="cart-item-row">
+                                    <div class="cart-item-poster">
+                                        <img src="@(item.Showtime?.Movie?.ImageURL ?? "")" alt="@(item.Showtime?.Movie?.Name ?? "N/A")" onerror="this.onerror=null;this.src='/images/default-poster.png';" />
+                                    </div>
+                                    <div class="cart-item-details">
+                                        <span class="cart-item-name">@(item.Showtime?.Movie?.Name ?? "Movie N/A")</span>
+                                        <div class="cart-item-meta d-block mb-1 text-muted" style="font-size:0.8rem;">
+                                            <i class="bi bi-calendar3 me-1"></i>@(item.Showtime?.StartTime.ToString("dd/MM/yyyy HH:mm") ?? "N/A")
+                                            &nbsp;&bull;&nbsp;
+                                            <i class="bi bi-door-open me-1"></i>@(item.Showtime?.CinemaRoom?.Name ?? "Room N/A")
+                                        </div>
+                                        <div class="cart-item-meta">
+                                            <span class="cart-item-price">
+                                                <i class="bi bi-tag-fill me-1 text-info"></i>@(item.Showtime?.Price.ToString("N2") ?? "0.00") đ
+                                            </span>
+                                            <span class="cart-item-category">
+                                                @(item.Showtime?.Movie?.Category?.Name ?? "No Category")
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="cart-item-qty">
+                                        <a class="qty-btn qty-btn-minus" asp-controller="Orders" asp-action="RemoveItemFromShoppingCart"
+                                           asp-route-id="@(item.Showtime?.Id ?? 0)">
+                                            <i class="bi bi-dash-lg"></i>
+                                        </a>
+                                        <span class="qty-value">@item.Amount</span>
+                                        <a class="qty-btn qty-btn-plus" asp-controller="Orders" asp-action="AddItemToShoppingCart"
+                                           asp-route-id="@(item.Showtime?.Id ?? 0)">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </a>
+                                    </div>
+                                    <div class="cart-item-subtotal">
+                                        @((item.Amount * (item.Showtime?.Price ?? 0.0)).ToString("N2")) đ
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Summary Column -->
+                <div class="col-lg-4 d-flex flex-column gap-3">
+                    <!-- Customer Details & Offers -->
+                    <div class="cart-summary-card glass-panel p-3">
+                        <div class="cart-summary-header mb-3">
+                            <h5 class="mb-0 fw-bold text-white">
+                                <i class="bi bi-person-bounding-box me-2" style="color:var(--cinema-accent-cyan)"></i>
+                                Customer Info & Offers
+                            </h5>
+                        </div>
+                        
+                        <div class="form-group-premium mb-3">
+                            <label class="form-label-premium text-white-50 small mb-1">
+                                <i class="bi bi-person-fill"></i> Tên khách hàng
+                            </label>
+                            <input type="text" id="cartCustomerName" class="form-control form-control-glass form-control-sm text-white" placeholder="Nhập tên của bạn" value="@rememberedName" required />
+                        </div>
+
+                        <div class="form-group-premium mb-3">
+                            <label class="form-label-premium text-white-50 small mb-1">
+                                <i class="bi bi-envelope-fill"></i> Địa chỉ Email
+                            </label>
+                            <input type="email" id="cartCustomerEmail" class="form-control form-control-glass form-control-sm text-white" placeholder="email@example.com" value="@rememberedEmail" required />
+                        </div>
+
+                        <div class="form-group-premium mb-2">
+                            <label class="form-label-premium text-white-50 small mb-1">
+                                <i class="bi bi-tags-fill text-warning me-2"></i> Mã giảm giá
+                            </label>
+                            <div class="d-flex gap-2">
+                                <input type="text" id="voucherInput" class="form-control form-control-glass form-control-sm text-white" placeholder="Nhập mã giảm giá" />
+                                <button type="button" class="btn btn-outline-info btn-sm px-3" onclick="applyVoucher()">Áp dụng</button>
+                            </div>
+                            <div id="voucherMessage" class="small mt-1" style="display:none;"></div>
+                        </div>
+
+                        <!-- Member Points Display -->
+                        <div id="memberPointsSection" class="mt-3 p-3 rounded" style="display:none; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1);">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-white small"><i class="bi bi-person-badge-fill text-info me-1"></i>Thành viên: <strong id="memberName">--</strong></span>
+                                <span class="badge bg-info-subtle text-info" style="font-size:0.75rem;"><span id="memberPoints">0</span> điểm</span>
+                            </div>
+                            <div class="form-check form-switch mt-1">
+                                <input class="form-check-input" type="checkbox" role="switch" id="usePointsCheckbox" onchange="togglePointsRedemption()">
+                                <label class="form-check-label text-muted small cursor-pointer" for="usePointsCheckbox">
+                                    Dùng điểm đổi giảm giá (Giảm <span id="pointsDiscountVal">0</span> đ)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Summary Card -->
+                    <div class="cart-summary-card glass-panel">
+                        <div class="cart-summary-header">
+                            <h5 class="mb-0 fw-bold text-white">
+                                <i class="bi bi-receipt me-2" style="color:var(--cinema-accent-gold)"></i>
+                                Order Summary
+                            </h5>
+                        </div>
+
+                        <div class="cart-summary-body">
+                            <div class="summary-row">
+                                <span>Subtotal (@Model.ShoppingCart.ShoppingCartItems.Sum(x => x.Amount) tickets)</span>
+                                <span>@Model.ShoppingCartTotal.ToString("N2") đ</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Service fee</span>
+                                <span class="text-success">Free</span>
+                            </div>
+                            <div class="summary-divider"></div>
+                            <div class="summary-row summary-total">
+                                <span>Total</span>
+                                <span id="summaryTotal">@Model.ShoppingCartTotal.ToString("N2") đ</span>
+                            </div>
+                        </div>
+
+                        <div class="cart-summary-footer">
+                            <div id="paypal-btn" class="mb-3"></div>
+                            <a class="btn btn-outline-secondary w-100" asp-controller="Movies" asp-action="Index">
+                                <i class="bi bi-plus-circle me-2"></i>Add More Tickets
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts{
+    <script src="https://www.paypal.com/sdk/js?client-id=AYNlji8b9WJnikVieHM6C1226KHG-5KmZjua-KkAv3wZi3U9rt5b7iy7U1ktAl6q-hz5fok8RDs1vn-P&currency=USD"></script>
+
+    <script>
+        let _total = @Html.Raw(Model.ShoppingCartTotal);
+
+        // Promotion State
+        let totalOriginalVND = _total;
+        let voucherCode = "";
+        let voucherDiscountVND = 0;
+        let voucherMinOrderAmount = 0;
+        let voucherIsPercentage = false;
+        let voucherValue = 0;
+        let pointsDiscountVND = 0;
+        let pointsAvailable = 0;
+        let pointsRedeemed = 0;
+
+        function applyVoucher() {
+            const codeInput = document.getElementById('voucherInput');
+            const code = codeInput.value.trim();
+            const msgDiv = document.getElementById('voucherMessage');
+            
+            if (code === "") {
+                msgDiv.style.display = 'block';
+                msgDiv.className = 'text-warning small mt-1';
+                msgDiv.innerText = "Vui lòng nhập mã giảm giá.";
+                return;
+            }
+            
+            if (totalOriginalVND === 0) {
+                msgDiv.style.display = 'block';
+                msgDiv.className = 'text-warning small mt-1';
+                msgDiv.innerText = "Giỏ hàng trống.";
+                return;
+            }
+            
+            fetch(`/Orders/ValidateVoucher?code=${code}&totalAmount=${totalOriginalVND}`)
+                .then(res => res.json())
+                .then(data => {
+                    msgDiv.style.display = 'block';
+                    if (data.isValid) {
+                        msgDiv.className = 'text-success small mt-1';
+                        msgDiv.innerText = data.message;
+                        
+                        voucherCode = code;
+                        voucherDiscountVND = data.discountAmount;
+                        voucherIsPercentage = data.isPercentage;
+                        voucherValue = data.value;
+                        voucherMinOrderAmount = data.minOrderAmount;
+                    } else {
+                        msgDiv.className = 'text-danger small mt-1';
+                        msgDiv.innerText = data.message;
+                        voucherCode = "";
+                        voucherDiscountVND = 0;
+                        voucherIsPercentage = false;
+                        voucherValue = 0;
+                        voucherMinOrderAmount = 0;
+                    }
+                    recalculateDiscountAndTotal();
+                });
+        }
+
+        function togglePointsRedemption() {
+            recalculateDiscountAndTotal();
+        }
+
+        function recalculateDiscountAndTotal() {
+            if (voucherCode !== "") {
+                if (totalOriginalVND < voucherMinOrderAmount) {
+                    voucherCode = "";
+                    voucherDiscountVND = 0;
+                    voucherIsPercentage = false;
+                    voucherValue = 0;
+                    voucherMinOrderAmount = 0;
+                    document.getElementById('voucherInput').value = "";
+                    const msgDiv = document.getElementById('voucherMessage');
+                    msgDiv.style.display = 'block';
+                    msgDiv.className = 'text-warning small mt-1';
+                    msgDiv.innerText = "Mã giảm giá đã bị hủy do tổng tiền không đủ điều kiện tối thiểu.";
+                } else {
+                    if (voucherIsPercentage) {
+                        voucherDiscountVND = totalOriginalVND * (voucherValue / 100.0);
+                    } else {
+                        voucherDiscountVND = voucherValue;
+                    }
+                }
+            }
+            
+            const usePointsCheckbox = document.getElementById('usePointsCheckbox');
+            if (usePointsCheckbox && usePointsCheckbox.checked) {
+                let maxDiscountWithPoints = totalOriginalVND - voucherDiscountVND;
+                let potentialPointsDiscount = pointsAvailable * 1000.0;
+                
+                if (potentialPointsDiscount > maxDiscountWithPoints) {
+                    pointsDiscountVND = maxDiscountWithPoints;
+                    pointsRedeemed = Math.ceil(pointsDiscountVND / 1000.0);
+                } else {
+                    pointsDiscountVND = potentialPointsDiscount;
+                    pointsRedeemed = pointsAvailable;
+                }
+            } else {
+                pointsDiscountVND = 0;
+                pointsRedeemed = 0;
+            }
+            
+            let finalTotalVND = totalOriginalVND - voucherDiscountVND - pointsDiscountVND;
+            if (finalTotalVND < 0) finalTotalVND = 0;
+            
+            // Update display
+            const summaryTotal = document.getElementById('summaryTotal');
+            if (summaryTotal) {
+                if (voucherDiscountVND > 0 || pointsDiscountVND > 0) {
+                    summaryTotal.innerHTML = `
+                        <span class="text-decoration-line-through text-muted" style="font-size:0.875rem;">${totalOriginalVND.toLocaleString('vi-VN')} đ</span><br/>
+                        <span class="text-warning fw-bold">${finalTotalVND.toLocaleString('vi-VN')} đ</span>
+                        <div class="text-danger small mt-1" style="font-size:0.7rem;">(Giảm giá: ${(voucherDiscountVND + pointsDiscountVND).toLocaleString('vi-VN')} đ)</div>
+                    `;
+                } else {
+                    summaryTotal.innerHTML = `${totalOriginalVND.toLocaleString('vi-VN')} đ`;
+                }
+            }
+        }
+
+        // Email listener to load membership points
+        document.addEventListener("DOMContentLoaded", function() {
+            const emailInput = document.getElementById('cartCustomerEmail');
+            if (emailInput) {
+                emailInput.addEventListener('change', function() {
+                    const email = this.value.trim();
+                    const pointsSection = document.getElementById('memberPointsSection');
+                    const memberName = document.getElementById('memberName');
+                    const memberPoints = document.getElementById('memberPoints');
+                    const pointsDiscountVal = document.getElementById('pointsDiscountVal');
+                    const usePointsCheckbox = document.getElementById('usePointsCheckbox');
+                    
+                    // Reset points check
+                    usePointsCheckbox.checked = false;
+                    pointsAvailable = 0;
+                    pointsDiscountVND = 0;
+                    pointsRedeemed = 0;
+                    
+                    if (email === "") {
+                        pointsSection.style.display = 'none';
+                        recalculateDiscountAndTotal();
+                        return;
+                    }
+                    
+                    fetch(`/Orders/GetMemberPoints?email=${email}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.isMember && data.points > 0) {
+                                pointsAvailable = data.points;
+                                memberName.innerText = data.name;
+                                memberPoints.innerText = data.points;
+                                pointsDiscountVal.innerText = data.discountAmount.toLocaleString('vi-VN');
+                                pointsSection.style.display = 'block';
+                            } else {
+                                pointsSection.style.display = 'none';
+                            }
+                            recalculateDiscountAndTotal();
+                        });
+                });
+
+                // Auto-trigger if there is a remembered email pre-filled
+                if (emailInput.value.trim() !== "") {
+                    emailInput.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+
+        paypal.Buttons({
+            style: {
+                layout: 'vertical',
+                color: 'gold',
+                shape: 'rect',
+                label: 'paypal'
+            },
+            onClick: function(data, actions) {
+                const name = document.getElementById('cartCustomerName').value.trim();
+                const email = document.getElementById('cartCustomerEmail').value.trim();
+                
+                if (name === "" || email === "") {
+                    alert("Vui lòng điền đầy đủ Tên khách hàng và Địa chỉ Email.");
+                    return actions.reject();
+                }
+                
+                // Basic email format check
+                const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+                if (!emailRegex.test(email)) {
+                    alert("Địa chỉ email không đúng định dạng.");
+                    return actions.reject();
+                }
+                
+                return actions.resolve();
+            },
+            createOrder: function(data, actions) {
+                let finalTotalVND = totalOriginalVND - voucherDiscountVND - pointsDiscountVND;
+                if (finalTotalVND < 0) finalTotalVND = 0;
+
+                // Convert VND to USD (using exchange rate 1 USD = 25,000 VND)
+                let usdAmount = (parseFloat(finalTotalVND) / 25000).toFixed(2);
+                if (parseFloat(usdAmount) <= 0) {
+                    usdAmount = "0.01";
+                }
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: usdAmount,
+                            currency_code: 'USD'
+                        }
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    const name = document.getElementById('cartCustomerName').value.trim();
+                    const email = document.getElementById('cartCustomerEmail').value.trim();
+                    const discountAmount = voucherDiscountVND + pointsDiscountVND;
+                    
+                    var url = '@Url.Action("CompleteOrder", "Orders", new { })';
+                    window.location.href = url + '?name=' + encodeURIComponent(name) + '&email=' + encodeURIComponent(email) + '&discountAmount=' + discountAmount + '&pointsRedeemed=' + pointsRedeemed;
+                });
+            }
+        }).render('#paypal-btn');
+    </script>
+}
