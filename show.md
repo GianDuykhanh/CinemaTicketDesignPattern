@@ -6,6 +6,15 @@
 >
 > **Luồng demo:** Xem phim → Chi tiết phim → Chọn ghế → Đặt vé → Thanh toán → Tạo Order → Quản trị xác nhận/hủy.
 
+## 🎙️ Lời mở đầu
+
+> "Xin chào mọi người, hôm nay mình sẽ demo dự án **MovieCinema** — một web đặt vé xem phim được xây dựng bằng ASP.NET Core MVC. Điểm đặc biệt của dự án này là nó áp dụng tới **11 Design Pattern** khác nhau, từ các pattern kinh điển như Proxy, Bridge, Strategy, đến các pattern nâng cao như Mediator, Observer, Chain of Responsibility.
+>
+> Mục tiêu của mình không phải chỉ liệt kê pattern, mà là chứng minh **mỗi pattern giải quyết một bài toán thực tế** trong nghiệp vụ đặt vé. Ví dụ: Proxy giúp tăng tốc load trang chủ, Bridge giúp tính giá linh hoạt theo loại ghế, Facade giúp Controller gọn gàng thay vì phải điều phối hàng chục service, còn State + Observer đảm bảo vòng đời đơn hàng được kiểm soát chặt chẽ.
+>
+> Mình sẽ đi theo **luồng người dùng thực tế**: mở trang chủ xem phim, chọn ghế, đặt vé, thanh toán, rồi chuyển sang góc Admin để xác nhận đơn. Ở mỗi bước, mình sẽ mở code thật, chỉ vào đúng file và dòng, giải thích pattern hoạt động như thế nào.
+
+
 ---
 
 ## Tổng quan kiến trúc
