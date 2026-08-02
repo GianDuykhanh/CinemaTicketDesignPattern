@@ -44,6 +44,10 @@ builder.Services.AddScoped<IMediator, AppMediator>();
 
 ## Chức năng 1 — Xem danh sách phim: Proxy Pattern
 
+### 🎙️ Lời dẫn demo
+
+> "Đầu tiên, mình sẽ mở trang chủ MovieCinema — đây là trang mà mọi user đều thấy đầu tiên khi vào web. Một điểm đáng chú ý: khi F5 refresh trang nhiều lần, thời gian load rất nhanh vì dữ liệu được cache. Đây chính là lúc Proxy Pattern phát huy tác dụng —Controller không biết rằng phía trước service thật có một lớp proxy đang giữ data trong bộ nhớ đệm."
+
 ### Thao tác trên web
 
 1. Mở trang chủ → thấy danh sách phim đang chiếu và sắp chiếu.
@@ -130,6 +134,10 @@ public async Task AddAsync(Movie entity)
 ---
 
 ## Chức năng 2 — Chọn ghế và tính giá: Bridge Pattern
+
+### 🎙️ Lời dẫn demo
+
+> "Sau khi xem danh sách phim, mình sẽ vào chi tiết một phim và bấm 'Đặt vé' để đến màn hình chọn ghế. Tại đây, mỗi loại ghế — Standard, VIP, Couple — đều có giá khác nhau. Hệ thống tự động tính giá theo loại ghế mà không cần hardcode trong Controller. Đây là lúc Bridge Pattern hoạt động: tách biệt phần 'biết loại ghế' khỏi phần 'tính giá', mỗi bên phát triển độc lập."
 
 ### Thao tác trên web
 
@@ -237,6 +245,10 @@ public class DisabledPricingStrategy : ISeatingPricingStrategy
 ---
 
 ## Chức năng 3 — Đặt vé: Facade + Builder + Strategy + Decorator (4 pattern cùng lúc)
+
+### 🎙️ Lời dẫn demo
+
+> "Tiếp theo là luồng nghiệp vụ quan trọng nhất: đặt vé. Mình sẽ chọn ghế, nhập thông tin khách hàng, áp dụng voucher hoặc điểm tích lũy, rồi chọn phương thức thanh toán. Chỉ một thao tác bấm 'Đặt vé' nhưng bên trong có nhiều bước xử lý liên tiếp. Facade đứng ra điều phối toàn bộ quy trình, Strategy chọn cách thanh toán, Builder tạo Order, còn Decorator xếp chồng các chính sách giảm giá."
 
 ### Thao tác trên web
 
@@ -526,6 +538,10 @@ public class LoyaltyPointsDecorator : IOrderPriceDecorator
 
 ## Chức năng 4 — Kiểm tra dữ liệu đặt vé: Chain of Responsibility Pattern
 
+### 🎙️ Lời dẫn demo
+
+> "Để đảm bảo dữ liệu đặt vé luôn hợp lệ trước khi xử lý, hệ thống sử dụng Chain of Responsibility — một chuỗi các bước kiểm tra xếp hàng. Mình sẽ thử一些 tình huống bất hợp lệ: chọn quá 10 ghế, chọn ghế đã bị đặt, hoặc nhập voucher sai. Bạn sẽ thấy từng bước kiểm tra xử lý tuần tự — bước nào fail thì dừng ngay tại đó."
+
 ### Thao tác trên web
 
 1. Từ màn hình chọn ghế → chọn **nhiều hơn 10 ghế** → bấm đặt vé.
@@ -690,6 +706,10 @@ public async Task<CompleteBookingResponse> HandleAsync(CompleteBookingRequest re
 ---
 
 ## Chức năng 5 — Quản trị xác nhận đơn: State + Mediator + Observer (3 pattern cùng lúc)
+
+### 🎙️ Lời dẫn demo
+
+> "Bây giờ mình sẽ chuyển sang góc độ quản trị. Đăng nhập với tài khoản Admin, vào trang Manage Bookings để quản lý đơn hàng. Ở đây, mỗi đơn có trạng thái riêng — Purchased, Confirmed, Cancelled, Refunded — và việc chuyển trạng thái phải tuân theo quy tắc. Mình sẽ demo Confirm, Cancel, và Refund để bạn thấy State machine kiểm soát vòng đời đơn hàng, Observer phản ứng khi trạng thái thay đổi, và Mediator giúp Controller không phụ thuộc trực tiếp vào nhiều service."
 
 ### Thao tác trên web
 
@@ -989,6 +1009,10 @@ public class EmailNotificationObserver : IOrderObserver
 ---
 
 ## Chức năng 6 — Giỏ hàng (ShoppingCart)
+
+### 🎙️ Lời dẫn demo
+
+> "Cuối cùng, mình sẽ demo giỏ hàng — nơi lưu tạm các suất chiếu mà user muốn đặt. Mình sẽ thêm một suất chiếu, tăng giảm số lượng và xóa item để quan sát cách giỏ hàng cập nhật. ShoppingCart được gắn với Session nên mỗi user có một giỏ riêng; khi thêm cùng một suất chiếu và cùng ghế, hệ thống sẽ gộp vào item hiện có thay vì tạo bản ghi trùng."
 
 ### Thao tác trên web
 
