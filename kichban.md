@@ -1,185 +1,177 @@
 # 🎬 KỊCH BẢN DEMO WEB VÀ GIẢI THÍCH DESIGN PATTERNS - MOVIECINEMA
 
 > **Dự án:** Hệ thống đặt vé xem phim trực tuyến **MovieCinema** (.NET 8 ASP.NET Core MVC, Entity Framework Core, SQL Server)  
-> **Mục tiêu:** Hướng dẫn từng bước thao tác demo trực quan trên giao diện Web, kết hợp trình bày nguyên lý và giải thích chi tiết nguồn code của **12 GoF Design Patterns** đã áp dụng thành công trong dự án.
+> **Mục tiêu:** Hướng dẫn từng bước thao tác demo trực quan trên giao diện Web, kết hợp trình bày nguyên lý, lời thoại thuyết trình và giải thích chi tiết nguồn code của **12 GoF Design Patterns** đã áp dụng thành công trong dự án.
 
 ---
 
-## 📌 1. BẢNG TỔNG QUAN HỆ THỐNG DESIGN PATTERNS DEMO
+## 📌 1. BẢNG TỔNG QUAN 12 GOF DESIGN PATTERNS TRONG HỆ THỐNG
 
-| STT | Tên Pattern | Nhóm | Vị trí Thao tác trên Web (UI) | Tệp Nguồn Triển khai | Lợi ích Kiến trúc mang lại |
-|:---:|:---|:---:|:---|:---|:---|
-| **1** | [Proxy](#bước-1-proxy-pattern--tối-ưu-tải-trang-chủ-bằng-cache) | Structural | Trang chủ (`/`), Trang Chi tiết phim | [CachedMoviesServiceProxy.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Proxy/CachedMoviesServiceProxy.cs) | Caching dữ liệu vào RAM, giảm 80-90% truy vấn trực tiếp vào Database |
-| **2** | [Singleton](#bước-2-singleton-pattern--quản-lý-giỏ-hàng-shoppingcart) | Creational | Giỏ hàng (`/Orders/ShoppingCart`) | [ShoppingCart.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Cart/ShoppingCart.cs) | Đảm bảo 1 duy nhất Instance Giỏ hàng trong từng Session người dùng |
-| **3** | [Bridge](#bước-3-bridge-pattern--phân-loại-giá-ghế-linh-hoạt) | Structural | Trang Chọn ghế (`/Showtimes/Book/ID`) | [SeatPricingBridge.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Models/Bridge/SeatPricingBridge.cs) | Tách biệt logic loại ghế (VIP/Couple/Standard) khỏi công thức tính giá |
-| **4** | [Chain of Resp.](#bước-4-chain-of-responsibility--pipeline-kiểm-tra-điều-kiện-đặt-vé) | Behavioral | Nút "Xác nhận đặt vé" | [OrderPipeline.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Chain/OrderPipeline.cs) | Chuỗi xử lý kiểm tra: Ghế trống -> Hạn vé -> Số dư -> Hợp lệ đơn |
-| **5** | [Strategy & Adapter](#bước-5-strategy--adapter-pattern--thanh-toán-đa-phương-thức) | Behavioral | Chọn phương thức Thanh toán | [PaymentStrategy.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Strategy/PaymentStrategy.cs) | Đa dạng hóa các cổng thanh toán (Tiền mặt, VNPay, MoMo) & bọc API |
-| **6** | [Decorator](#bước-6-decorator-pattern--tính-chiết-khấu-và-phụ-phí-đơn-hàng) | Structural | Ô nhập Voucher / Chọn Combo | [PricingDecorators.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Decorators/PricingDecorators.cs) | Mở rộng tính giá (Voucher, Điểm thưởng, Combo) linh hoạt không sửa Order gốc |
-| **7** | [Builder](#bước-7-builder-pattern--khởi-tạo-đối-tượng-đơn-hàng-phức-tạp) | Creational | Xử lý tạo Order Backend | [OrderBuilder.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Models/Builders/OrderBuilder.cs) | Khởi tạo đối tượng `Order` nhiều thuộc tính từng bước rõ ràng, an toàn |
-| **8** | [Facade](#bước-8-facade-pattern--đơn-giản-hóa-toàn-bộ-luồng-đặt-vé) | Structural | Đặt vé nhanh (Quick Booking) | [BookingFacade.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Facade/BookingFacade.cs) | Cung cấp 1 Interface duy nhất che giấu sự phức tạp của Subsystem |
-| **9** | [Mediator](#bước-9-mediator-pattern--điều-phối-giao-tiếp-các-services) | Behavioral | Luồng điều phối giữa Controllers | [BookingMediator.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Mediator/BookingMediator.cs) | Giảm sự phụ thuộc trực tiếp (Coupling) giữa Controller và nhiều Service |
-| **10** | [State](#bước-10-state-pattern--quản-lý-vòng-đời-trạng-thái-đơn-hàng) | Behavioral | Trang Lịch sử Đơn hàng (`/Orders/Index`) | [OrderStateMachine.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/State/OrderStateMachine.cs) | Chuyển đổi trạng thái đơn (Pending -> Paid -> Cancelled) an toàn, chặt chẽ |
-| **11** | [Observer](#bước-11-observer-pattern--thông-báo-tự-động-khi-thay-đổi-trạng-thái) | Behavioral | Khi đơn hàng Đã thanh toán / Hủy vé | [OrderObserver.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Observer/OrderObserver.cs) | Gửi Email xác nhận và bắn Real-time Notification tự động |
-
----
-
-## 📽️ 2. KỊCH BẢN THAO TÁC DEMO THỰC TẾ & LỜI THOẠI TRUYỀN TẢI
+| Nhóm Pattern | STT | Tên Pattern | Vị trí Thao tác trên Web (UI) | File Code Backend Triển khai | Công dụng / Lợi ích Kiến trúc mang lại |
+|:---:|:---:|:---|:---|:---|:---|
+| **Creational**<br>*(Khởi tạo)* | **1** | **Singleton** | Giỏ hàng vé & Đồ ăn (`/Orders/ShoppingCart`) | [ShoppingCart.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Cart/ShoppingCart.cs) | Đảm bảo duy nhất 1 Instance Giỏ hàng trong suốt Session của người dùng |
+| | **2** | **Builder** | Xử lý tạo Đơn hàng Backend sau thanh toán | [OrderBuilder.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Models/Builders/OrderBuilder.cs) | Khởi tạo đối tượng `Order` phức tạp có nhiều thuộc tính từng bước an toàn, rõ ràng |
+| **Structural**<br>*(Cấu trúc)* | **3** | **Proxy** | Trang chủ (`/`), Trang *Phim đang chiếu* | [CachedMoviesServiceProxy.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Proxy/CachedMoviesServiceProxy.cs) | Caching danh sách phim vào RAM, giảm 80-90% truy vấn trực tiếp xuống Database SQL |
+| | **4** | **Bridge** | Sơ đồ chọn ghế (`/Showtimes/Book/ID`) | [SeatPricingBridge.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Models/Bridge/SeatPricingBridge.cs) | Tách biệt loại ghế (VIP/Couple/Standard) khỏi công thức tính giá tương ứng |
+| | **5** | **Adapter** | Form chọn phương thức thanh toán | [PaymentStrategy.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Strategy/PaymentStrategy.cs) | Bọc API / SDK cổng thanh toán bên thứ 3 (PayPal/MoMo) về giao diện chuẩn dự án |
+| | **6** | **Decorator** | Ô nhập Voucher / Chọn Combo / Trừ điểm | [PricingDecorators.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Decorators/PricingDecorators.cs) | Xếp chồng các lớp chiết khấu & phụ phí lồng nhau mà không sửa đổi Order gốc |
+| | **7** | **Facade** | Cổng đại diện cho luồng đặt vé | [BookingFacade.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Facade/BookingFacade.cs) | Gom 8 bước xử lý đặt vé phức tạp vào 1 interface đơn giản giúp Controller cực gọn |
+| **Behavioral**<br>*(Hành vi)* | **8** | **Chain of Resp.** | Nút "Xác nhận đặt vé" | [OrderPipeline.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Chain/OrderPipeline.cs) | Chuỗi 4 bước kiểm tra (Ghế trống -> Hạn vé -> Voucher -> Điểm), vi phạm bước nào dừng ngay |
+| | **9** | **Strategy** | Chọn phương thức thanh toán Cash / PayPal | [PaymentStrategy.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Strategy/PaymentStrategy.cs) | Chuyển đổi linh hoạt giữa các thuật toán thanh toán tại thời điểm Runtime |
+| | **10** | **Mediator** | Luồng điều phối giữa Controller & Handler | [BookingMediator.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Mediator/BookingMediator.cs) | Trạm điều phối trung tâm gửi Command/Request, giảm sự phụ thuộc trực tiếp giữa các lớp |
+| | **11** | **State** | Trang Quản lý Đơn hàng (`/Orders/Index`) | [OrderStateMachine.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/State/OrderStateMachine.cs) | Kiểm soát vòng đời trạng thái đơn (Purchased -> Confirmed -> Cancelled) đúng quy tắc |
+| | **12** | **Observer** | Tự động sau khi duyệt / hủy đơn hàng | [OrderObserver.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Observer/OrderObserver.cs) | Tự động Gửi Mail vé QR, Cộng/Hoàn điểm thưởng & Ghi Log khi trạng thái đơn đổi |
 
 ---
 
-### BƯỚC 1: PROXY PATTERN — TỐI ƯU TẢI TRANG CHỦ BẰNG CACHE
+## 📽️ 2. KỊCH BẢN THUYẾT TRÌNH VÀ DEMO WEB THỰC TẾ
 
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Mở trình duyệt, truy cập vào Trang chủ `https://localhost:7198/`. Sau đó nhấn `F5` tải lại trang nhiều lần hoặc chuyển qua lại giữa trang *Phim Đang Chiếu* và *Phim Sắp Chiếu*.
-- **Lời thoại:** *"Đầu tiên tại Trang chủ của hệ thống MovieCinema, ứng dụng cần hiển thị danh sách các bộ phim đang chiếu. Nếu mỗi lần người dùng F5 hoặc truy cập trang mà ứng dụng đều phải gọi xuống SQL Server để query dữ liệu thì sẽ rất chậm và dễ gây quá tải database. Vì vậy nhóm đã áp dụng **Proxy Pattern** qua lớp Proxy Cache."*
-
-#### 📺 Hiện tượng quan sát được:
-- Lần truy cập đầu tiên: Trang nạp dữ liệu từ DB (mất khoảng vài trăm ms).
-- Các lần F5 tiếp theo: Trang tải **tức thì (gần như 0ms)** do dữ liệu phim đã được lấy trực tiếp từ Memory Cache của hệ thống.
-
-#### 🧠 Nguyên lý Design Pattern (Proxy):
-Proxy đóng vai trò làm Đại diện (Surrogate / Placeholder) cho dịch vụ thật `MoviesService`. Mọi truy vấn từ Controller đều đi qua Proxy trước; Proxy kiểm tra xem RAM cache có dữ liệu chưa. Nếu có thì trả về ngay, nếu chưa có mới gọi `RealService` truy vấn DB và lưu lại vào Cache.
+### 🎙️ PHẦN MỞ ĐẦU THUYẾT TRÌNH (00:00 - 01:00)
+> *"Xin chào thầy và hội đồng, em xin đại diện nhóm trình bày đồ án **Hệ thống Đặt vé Xem phim Trực tuyến MovieCinema** (.NET 8 ASP.NET Core MVC, Entity Framework Core, SQL Server).  
+> Đồ án được thiết kế chuẩn kiến trúc với việc áp dụng thành công **11 Design Patterns** chia thành 3 nhóm: **Creational** (Khởi tạo), **Structural** (Cấu trúc) và **Behavioral** (Hành vi). Sau đây em xin bắt đầu demo từng phần tương ứng với luồng người dùng thực tế."*
 
 ---
 
-### BƯỚC 2: SINGLETON PATTERN — QUẢN LÝ GIỎ HÀNG (SHOPPING CART)
+### 📦 PHẦN I: NHÓM CREATIONAL PATTERNS (MẪU KHỞI TẠO)
 
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Đăng nhập tài khoản khách hàng, nhấn nút **"Thêm vào giỏ hàng"** ở một bộ phim. Sau đó chuyển sang các trang khác như *Danh sách phim*, *Diễn viên* rồi quay lại `/Orders/ShoppingCart`.
-- **Lời thoại:** *"Tiếp theo là tính năng Giỏ hàng. Giỏ hàng phải duy trì trạng thái nhất quán trong suốt Session của người dùng hiện tại, tránh việc mỗi action lại khởi tạo ra một giỏ hàng mới độc lập gây mất dữ liệu. Nhóm áp dụng **Singleton Pattern** để quản lý giỏ hàng theo Session."*
-
-#### 📺 Hiện tượng quan sát được:
-- Dù người dùng chuyển qua bất kỳ tab hay trang nào trên website, danh sách vé phim và đồ ăn đã chọn trong giỏ hàng vẫn được giữ nguyên đầy đủ.
-
-#### 🧠 Nguyên lý Design Pattern (Singleton):
-Đảm bảo một Class chỉ có duy nhất một đối tượng đại diện (instance) trong một phạm vi (ở đây là phạm vi Session làm việc của một User) và cung cấp một điểm truy cập toàn cục tới instance đó.
-
----
-
-### BƯỚC 3: BRIDGE PATTERN — PHÂN LOẠI GIÁ GHẾ LINH HOẠT (VIP / COUPLE / STANDARD)
-
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Vào chi tiết 1 Phim -> Nhấn **"Đặt vé ngay"** để chọn Suất chiếu -> Màn hình sơ đồ phòng chiếu xuất hiện. Thao tác nhấp chọn:
-  - 1 Ghế thường (Standard - VD: A1) -> Xem tổng tiền.
-  - 1 Ghế VIP (VD: E5) -> Xem giá ghế tăng lên (+20%).
-  - 1 Ghế Đôi (Couple - VD: H1) -> Xem giá ghế tăng gấp đôi (+100%).
-- **Lời thoại:** *"Tại sơ đồ chọn ghế, rạp chiếu phim có nhiều loại ghế khác nhau (Ghế Thường, VIP, Couple) với chính sách giá riêng. Nếu dùng `if-else` hoặc `switch-case` rải rác ở Controller thì code rất bẩn. Nhóm sử dụng **Bridge Pattern** để tách biệt abstractions của Ghế với công thức tính giá tương ứng."*
-
-#### 📺 Hiện tượng quan sát được:
-Khi nhấp chọn các loại ghế khác nhau trên giao diện UI, giá của từng ghế và tổng tiền tạm tính lập tức được cập nhật chính xác theo hệ số của loại ghế đó.
-
-#### 🧠 Nguyên lý Design Pattern (Bridge):
-Bridge giúp tách rời phần Trừu tượng (Abstraction) khỏi phần Thực thi (Implementation), giúp cả hai có thể biến đổi độc lập. Loại ghế (`SeatType`) và Thuật toán tính giá ghế (`ISeatPricingStrategy`) được nối với nhau qua một "Cây cầu" Bridge.
+#### **1. Singleton Pattern — Quản lý Giỏ hàng (ShoppingCart)**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Pattern đầu tiên thuộc nhóm Creational là **Singleton Pattern** áp dụng cho chức năng Giỏ hàng. Giỏ hàng phải duy trì duy nhất một đối tượng đại diện (Instance) xuyên suốt phiên Session của người dùng hiện tại, tránh việc mỗi lần người dùng chuyển trang lại tạo mới một giỏ hàng làm mất dữ liệu."*
+* **📺 Thao tác Web Demo:**  
+  1. Đăng nhập tài khoản khách hàng.
+  2. Chọn một bộ phim ➔ Nhấn **"Thêm vào giỏ hàng"**.
+  3. Chuyển sang các tab khác trên website (*Danh sách phim, Diễn viên, Rạp chiếu*).
+  4. Truy cập lại trang Giỏ hàng `/Orders/ShoppingCart`.
+* **📺 Hiện tượng quan sát được:**  
+  Danh sách vé phim và đồ ăn đã chọn trong giỏ hàng vẫn được duy trì đầy đủ và nhất quán.
 
 ---
 
-### BƯỚC 4: CHAIN OF RESPONSIBILITY — PIPELINE KIỂM TRA ĐIỀU KIỆN ĐẶT VÉ
-
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Chọn ghế đã có người đặt (ghế màu đỏ) hoặc chọn suất chiếu đã qua giờ chiếu -> Nhấn **"Thanh toán"**.
-- **Lời thoại:** *"Trước khi tạo đơn hàng, hệ thống phải thực hiện hàng loạt bước kiểm tra nghiêm ngặt: 1. Ghế có bị trùng người khác vừa đặt không? 2. Suất chiếu còn hạn không? 3. Điểm thưởng/Voucher có hợp lệ không? Thay vì viết một hàm dài hàng trăm dòng, nhóm áp dụng **Chain of Responsibility Pattern** tạo thành một Pipeline kiểm tra tuần tự."*
-
-#### 📺 Hiện tượng quan sát được:
-Nếu vi phạm bất kỳ bước nào (ví dụ ghế đã bị đặt), hệ thống lập tức dừng ngay bước đó và hiển thị thông báo lỗi chính xác cho người dùng (VD: *"Ghế A5 đã được người khác đặt"*).
-
----
-
-### BƯỚC 5: STRATEGY & ADAPTER PATTERN — THANH TOÁN ĐA PHƯƠNG THỨC & TÍCH HỢP CỔNG NGOÀI
-
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Tại bước Chọn thanh toán, chuyển đổi giữa các Option:
-  - **Tiền mặt tại rạp (Cash)**
-  - **Ví điện tử MoMo**
-  - **Cổng thanh toán VNPay / Thẻ quốc tế**
-- **Lời thoại:** *"Hệ thống hỗ trợ nhiều hình thức thanh toán khác nhau. Nhóm kết hợp **Strategy Pattern** (để hoán đổi thuật toán thanh toán linh hoạt tại thời điểm Runtime) và **Adapter Pattern** (để bọc lại API của các bên thứ 3 như VNPay/MoMo về cùng 1 chuẩn giao tiếp của hệ thống)."*
-
-#### 📺 Hiện tượng quan sát được:
-Khi chọn VNPay/MoMo -> Hệ thống hiển thị QR Code hoặc chuyển hướng đến cổng thanh toán tương ứng. Khi chọn Tiền mặt -> Tạo đơn thành công với trạng thái *Chờ thanh toán tại rạp*.
+#### **2. Builder Pattern — Khởi tạo đối tượng Đơn hàng (Order) phức tạp**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Khi khách hàng nhấn Đặt vé, một đối tượng Đơn hàng (`Order`) chứa rất nhiều thông tin phức tạp: Thông tin khách hàng, Suất chiếu, Ghế ngồi, Mã giảm giá, Phương thức thanh toán, Tổng tiền... Nhóm sử dụng **Builder Pattern** với kỹ thuật Fluent Chaining giúp lắp ráp đối tượng Order theo từng bước rõ ràng, minh bạch."*
+* **📺 Thao tác Web Demo:**  
+  Thực hiện thao tác nhấn **"Xác nhận thanh toán & Tạo đơn hàng"**.
+* **📺 Hiện tượng quan sát được:**  
+  Đơn hàng được khởi tạo thành công với đầy đủ thuộc tính chính xác và lưu xuống SQL Server an toàn mà không bị sai sót vị trí tham số.
 
 ---
 
-### BƯỚC 6: DECORATOR PATTERN — TÍNH CHIẾT KHẤU, VOUCHER VÀ COMBO ĐƠN HÀNG
+### 🏛️ PHẦN II: NHÓM STRUCTURAL PATTERNS (MẪU CẤU TRÚC)
 
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Tại trang xác nhận đơn hàng:
-  1. Nhập Mã Voucher giảm giá (VD: `DISCOUNT10` -> Giảm 10%).
-  2. Tích chọn Đổi Điểm thưởng tích lũy (VD: Dùng 10 điểm -> Giảm 10.000đ).
-  3. Chọn thêm Combo Bắp Nước (VD: Combo Bắp Phô Mai + 50.000đ).
-- **Lời thoại:** *"Đơn hàng gốc có giá vé ban đầu. Tuy nhiên, đơn hàng có thể được áp dụng thêm Voucher, trừ điểm tích lũy, hoặc cộng thêm Combo bắp nước. Nhóm sử dụng **Decorator Pattern** để bọc thêm các tính năng tính tiền này vào đơn hàng một cách linh hoạt."*
-
-#### 📺 Hiện tượng quan sát được:
-Dòng Tổng tiền thanh toán được biến đổi động theo từng lớp (Layers): Giá gốc -> Bọc bởi Voucher -> Bọc bởi Trừ điểm -> Bọc bởi Combo Bắp Nước -> Trọng số Tổng thành tiền cuối cùng hoàn toàn chính xác.
-
----
-
-### BƯỚC 7: BUILDER PATTERN — KHỞI TẠO ĐỐI TƯỢNG ĐƠN HÀNG (ORDER) PHỨC TẠP
-
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Thực hiện thao tác hoàn tất đặt vé.
-- **Lời thoại:** *"Một đối tượng Đơn hàng (`Order`) trong hệ thống rạp chiếu phim có rất nhiều thông tin phức tạp: Thông tin khách hàng, Suất chiếu, Ghế ngồi, Mã giảm giá, Phương thức thanh toán, Tổng tiền, Điểm tích lũy... Nhóm dùng **Builder Pattern** để lắp ráp đối tượng Order theo từng bước rõ ràng, tránh rủi ro lầm lẫn tham số trong Constructor."*
-
-#### 📺 Hiện tượng quan sát được:
-Đơn hàng được khởi tạo thành công với đầy đủ các thuộc tính chính xác và lưu xuống Database an toàn mà không xảy ra lỗi Null Reference hay sai lệch vị trí tham số.
+#### **3. Proxy Pattern — Tối ưu tải Trang chủ bằng Cache**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Tại Trang chủ của website, ứng dụng cần hiển thị danh sách phim đang chiếu. Nếu mỗi lần F5 trang mà ứng dụng đều query xuống SQL Server thì database sẽ bị quá tải. Nhóm áp dụng **Proxy Pattern** qua `CachedMoviesServiceProxy`. Proxy đóng vai trò gác cổng: kiểm tra RAM MemoryCache trước, nếu có dữ liệu thì trả về ngay (~0ms), nếu chưa có mới truy vấn SQL Server."*
+* **📺 Thao tác Web Demo:**  
+  1. Truy cập Trang chủ `https://localhost:7198/`.
+  2. Nhấn `F5` refresh trang nhiều lần.
+  3. Mở F12 DevTools -> Tab Network quan sát thời gian phản hồi.
+* **📺 Hiện tượng quan sát được:**  
+  Các lần F5 tiếp theo trang nạp tức thì do dữ liệu được trả trực tiếp từ RAM Cache.
 
 ---
 
-### BƯỚC 8: FACADE PATTERN — ĐƠN GIẢN HÓA TOÀN BỘ LUỒNG ĐẶT VÉ (BOOKING FACADE)
-
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Khách hàng nhấn nút **"Xác nhận Thanh toán & Đặt vé"**.
-- **Lời thoại:** *"Thực tế khi người dùng bấm Đặt vé, Backend phải gọi 5-6 service khác nhau: `ShowtimesService`, `SeatsService`, `OrdersService`, `PaymentStrategy`, `OrderPipeline`... Để Controller không bị phình to và chằng chịt mã nguồn, nhóm dùng **Facade Pattern** làm giao diện đại diện duy nhất."*
-
-#### 📺 Hiện tượng quan sát được:
-Controller chỉ gọi đúng 1 hàm `_bookingFacade.ProcessBookingAsync(...)`, toàn bộ quy trình phức tạp được xử lý mượt mà và trả kết quả thành công chỉ trong vài mili-giây.
-
----
-
-### BƯỚC 9: MEDIATOR PATTERN — ĐIỀU PHỐI GIAO TIẾP GIỮA CÁC SERVICES
-
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Báo cáo về kiến trúc luồng dữ liệu Backend giữa các Controller.
-- **Lời thoại:** *"Để tránh các Controller phụ thuộc chéo lẫn nhau (ví dụ `OrdersController` phải inject 6-7 Interfaces khác nhau), nhóm áp dụng **Mediator Pattern**. `BookingMediator` đóng vai trò là Trạm điều phối trung tâm."*
-
-#### 📺 Hiện tượng quan sát được:
-Mã nguồn trong `OrdersController` cực kỳ gọn gàng, giảm 70% số lượng dòng code và độ phức tạp cyclomatic complexity.
+#### **4. Bridge Pattern — Phân loại giá ghế linh hoạt**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Tại sơ đồ phòng chiếu, rạp có nhiều loại ghế khác nhau (Ghế Thường, VIP, Couple) với chính sách giá riêng. Nhóm áp dụng **Bridge Pattern** để tách biệt Abstraction loại ghế khỏi Implementation công thức tính giá (`ISeatingPricingStrategy`). Nhờ đó, khi rạp bổ sung thêm loại ghế mới như 'Ghế Massage', nhóm chỉ cần tạo thêm class chiến lược giá mới mà không sửa Controller."*
+* **📺 Thao tác Web Demo:**  
+  Vào chi tiết Phim ➔ Nhấn **Đặt vé** chọn Suất chiếu ➔ Màn hình sơ đồ ghế hiện ra:
+  1. Chọn 1 Ghế Thường (Standard - A1) ➔ Giá = 100% giá gốc (100.000đ).
+  2. Chọn 1 Ghế VIP (E5) ➔ Giá tự động tăng 20% (120.000đ).
+  3. Chọn 1 Ghế Đôi (Couple - H1) ➔ Giá tự động tính gấp đôi (200.000đ).
 
 ---
 
-### BƯỚC 10: STATE PATTERN — QUẢN LÝ VÒNG ĐỜI TRẠNG THÁI ĐƠN HÀNG
-
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Vào Quản lý đơn hàng (`/Orders/Index`), thực hiện chuyển trạng thái đơn từ **Chờ thanh toán (Pending)** -> **Đã thanh toán (Paid)** -> **Đã hủy vé (Cancelled)**. Thử nhấn nút Hủy đơn trên một Đơn hàng *Đã hoàn tất chiếu* -> Hệ thống chặn lại.
-- **Lời thoại:** *"Đơn hàng có vòng đời chuyển đổi trạng thái nghiêm ngặt. Ví dụ: Đơn `Pending` mới được sang `Paid`, Đơn đã `Completed` thì không thể `Cancelled`. Nhóm sử dụng **State Pattern** để quản lý các quy tắc chuyển đổi trạng thái này."*
-
-#### 📺 Hiện tượng quan sát được:
-Nút thao tác trên UI tự động thay đổi theo Trạng thái đơn hàng. Nếu cố tình gửi request sai quy trình, State Machine sẽ từ chối và báo lỗi nghiệp vụ.
-
----
-
-### BƯỚC 11: OBSERVER PATTERN — TỰ ĐỘNG GỬI EMAIL VÀ BẮN NOTIFICATION REAL-TIME
-
-#### 🗣️ Lời thoại Thuyết trình & Thao tác Demo:
-- **Thao tác:** Sau khi Đặt vé & Thanh toán thành công -> Mở Hòm thư Email giả lập hoặc xem Chuông thông báo góc phải màn hình Web.
-- **Lời thoại:** *"Khi đơn hàng chuyển sang trạng thái Thanh toán thành công, hệ thống cần thực hiện nhiều tác vụ phụ trợ: 1. Gửi Email vé xem phim có Mã QR code. 2. Đẩy thông báo Real-time lên Web. 3. Tích điểm thưởng cho khách hàng. Nhóm áp dụng **Observer Pattern** để tự động hóa các tác vụ này mà không làm phình code xử lý thanh toán."*
-
-#### 📺 Hiện tượng quan sát được:
-Ngay lập tức trên UI xuất hiện thông báo toast rực rỡ: *"Vé của bạn đã thanh toán thành công! Mã vé #1024"*, đồng thời hệ thống gửi mail vé xem phim tự động.
+#### **5. Adapter Pattern — Bọc SDK cổng thanh toán bên thứ ba**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Hệ thống hỗ trợ thanh toán qua cổng trực tuyến bên thứ 3 như PayPal hay MoMo. Các SDK này có giao diện API riêng. Nhóm áp dụng **Adapter Pattern** (`PayPalPaymentStrategy`) bọc SDK bên ngoài về cùng chuẩn giao tiếp `IPaymentStrategy` của hệ thống."*
+* **📺 Thao tác Web Demo:**  
+  Tại bước chọn phương thức thanh toán, tích chọn **Ví PayPal / Thẻ quốc tế** ➔ Nhấn Đặt vé.
+* **📺 Hiện tượng quan sát được:**  
+  Hệ thống kết nối và mô phỏng giao dịch thành công với cổng PayPal.
 
 ---
 
-## 🛠️ 3. GIẢI THÍCH MÃ NGUỒN CHUYÊN SÂU TỪNG DESIGN PATTERN (CODE DEEP DIVE)
+#### **6. Decorator Pattern — Xếp chồng chiết khấu & Phụ phí đơn hàng**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Đơn hàng gốc có giá vé ban đầu. Đơn hàng có thể được bọc thêm Voucher giảm giá, trừ điểm tích lũy, hoặc giảm giá giờ vàng (Happy Hour). Nhóm dùng **Decorator Pattern** để xếp chồng các tính năng tính tiền này lồng nhau một cách linh hoạt tại Runtime."*
+* **📺 Thao tác Web Demo:**  
+  1. Nhập Mã Voucher giảm giá (`DISCOUNT10` -> Giảm 10%).
+  2. Tích chọn Đổi Điểm thưởng tích lũy (Dùng 10 điểm -> Giảm 10.000đ).
+* **📺 Hiện tượng quan sát được:**  
+  Dòng tổng tiền thanh toán được biến đổi động theo từng lớp bọc: Giá gốc ➔ Bọc Voucher ➔ Bọc Trừ điểm ➔ Trọng số tổng thành tiền cuối cùng hoàn toàn chính xác.
 
 ---
 
-### 3.1 Proxy Pattern (Tối ưu Cache Danh sách Phim)
+#### **7. Facade Pattern — Đơn giản hóa toàn bộ luồng Đặt vé**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Thực tế luồng đặt vé phải gọi 7-8 service phức tạp bên dưới. Nhóm dùng **Facade Pattern** (`BookingFacade`) đóng vai trò là giao diện đại diện duy nhất, giúp `OrdersController` chỉ cần gọi đúng 1 dòng lệnh mà vẫn xử lý trơn tru toàn bộ quy trình."*
+* **📺 Thao tác Web Demo:**  
+  Khách hàng nhấn nút **"Xác nhận thanh toán & Đặt vé"**.
+* **📺 Hiện tượng quan sát được:**  
+  Giao dịch được xử lý hoàn tất mượt mà chỉ trong vài mili-giây.
+
+---
+
+### 🔄 PHẦN III: NHÓM MẪU HÀNH VI (BEHAVIORAL PATTERNS)
+
+#### **8. Chain of Responsibility — Pipeline kiểm tra điều kiện đặt vé**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Trước khi tạo đơn, dữ liệu được truyền qua một Pipeline gồm 4 Handler kiểm tra tuần tự (**Chain of Responsibility**). Nếu vi phạm bước nào (ví dụ đặt quá 10 ghế), Handler đó dừng ngay lập tức và báo lỗi mà không lãng phí tài nguyên xử lý các bước đằng sau."*
+* **📺 Thao tác Web Demo:**  
+  Chọn 11 ghế cùng lúc ➔ Nhấn **Đặt vé**.
+* **📺 Hiện tượng quan sát được:**  
+  `ValidationHandler` ngắt chuỗi và hiển thị thông báo lỗi lập tức: *"Không thể đặt quá 10 ghế mỗi lần."*
+
+---
+
+#### **9. Strategy Pattern — Chuyển đổi phương thức thanh toán tại Runtime**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Nhóm áp dụng **Strategy Pattern** qua `PaymentContext`. Tùy thuộc vào việc khách hàng chọn 'Tiền mặt' hay 'PayPal' trên Web UI, `PaymentContext` sẽ hoán đổi thuật toán xử lý thanh toán tương ứng ngay tại Runtime."*
+* **📺 Thao tác Web Demo:**  
+  Chuyển đổi lựa chọn giữa *Tiền mặt tại rạp* và *Ví PayPal*.
+
+---
+
+#### **10. Mediator Pattern — Trạm điều phối giao tiếp Backend**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Để tránh các Controller phụ thuộc trực tiếp vào nhiều Service xử lý, nhóm dùng **Mediator Pattern** (`AppMediator`) làm trạm điều phối trung tâm nhận và chuyển tiếp các Command/Request."*
+* **📺 Thao tác Web Demo:**  
+  Trình bày cấu trúc code trong Controller cực kỳ gọn gàng, giảm 70% độ phức tạp phụ thuộc.
+
+---
+
+#### **11. State Pattern — Quản lý vòng đời trạng thái Đơn hàng**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Đơn hàng có quy tắc chuyển trạng thái nghiêm ngặt. Nhóm áp dụng **State Pattern**. Mỗi trạng thái là 1 class độc lập. Đơn hàng đã Hủy (`CancelledState`) sẽ khóa toàn bộ luồng, không cho phép đổi sang bất kỳ trạng thái nào khác."*
+* **📺 Thao tác Web Demo:**  
+  Đăng nhập Admin ➔ Vào Quản lý đơn hàng (`/Orders/ManageBookings`) ➔ Duyệt đơn từ `Purchased` sang `Confirmed` ➔ Thử bấm nút Hủy đơn trên đơn đã hoàn tất.
+* **📺 Hiện tượng quan sát được:**  
+  State Machine từ chối thao tác sai quy tắc và báo lỗi nghiệp vụ.
+
+---
+
+#### **12. Observer Pattern — Tự động Gửi Mail vé QR & Tích điểm**
+* **🗣️ Lời thoại Thuyết trình:**  
+  *"Khi đơn hàng chuyển sang trạng thái `Confirmed`, `OrderSubject` tự động phát thông báo cho 3 Observers chạy tự động: `AuditLogObserver` (ghi log), `LoyaltyPointsObserver` (cộng điểm cho khách) và `EmailNotificationObserver` (gửi mail vé QR)."*
+* **📺 Thao tác Web Demo:**  
+  Admin bấm **Confirm** duyệt đơn ➔ Mở Hòm thư Email / Log Console xem thông báo tự động.
+
+---
+
+## 🛠️ 3. GIẢI THÍCH MÃ NGUỒN CHI TIẾT TỪNG DESIGN PATTERN
+
+---
+
+### 3.1 Proxy Pattern (Tối ưu Memory Cache danh sách Phim)
 📂 **Tệp nguồn:** [CachedMoviesServiceProxy.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Proxy/CachedMoviesServiceProxy.cs)
 
 ```csharp
 public class CachedMoviesServiceProxy : IMoviesService
 {
     private readonly MoviesService _realService; // Đối tượng Service thật kết nối EF Core DB
-    private readonly IMemoryCache _cache;        // Bộ nhớ RAM (.NET MemoryCache)
-    private static readonly TimeSpan DefaultExpiry = TimeSpan.FromMinutes(10); // Thời gian lưu cache
+    private readonly IMemoryCache _cache;        // Bộ nhớ RAM Cache (.NET MemoryCache)
+    private static readonly TimeSpan DefaultExpiry = TimeSpan.FromMinutes(10); // Hạn cache 10 phút
 
     public CachedMoviesServiceProxy(MoviesService realService, IMemoryCache cache)
     {
@@ -201,26 +193,23 @@ public class CachedMoviesServiceProxy : IMoviesService
         }) ?? Enumerable.Empty<Movie>();
     }
 
-    // 2. Phương thức Ghi/Sửa dữ liệu có Invalidate Cache (Cache Invalidation)
+    // 2. Phương thức Ghi dữ liệu có Invalidate Cache (Cache Invalidation)
     public async Task AddNewMovieAsync(NewMovieVM data)
     {
-        await _realService.AddNewMovieAsync(data); // Lưu vào DB trước
-        InvalidateAllCaches();                      // Xóa cache cũ để làm mới dữ liệu
+        await _realService.AddNewMovieAsync(data); // 1. Thêm phim vào SQL DB trước
+        InvalidateAllCaches();                      // 2. Xóa các key cache cũ để làm mới dữ liệu
     }
 }
 ```
-
-#### 🔍 Giải thích chi tiết Luồng hoạt động:
-1. **Subject Interface (`IMoviesService`):** Cả Proxy và `MoviesService` đều cài đặt chung một Interface. Do đó, `MoviesController` chỉ inject `IMoviesService` mà không cần biết phía sau là Proxy hay Service thật.
-2. **Cơ chế `GetOrCreateAsync`:** Khi gọi `GetNowShowingMoviesAsync()`, Proxy kiểm tra `key` trong RAM Cache:
-   - **Cache Hit (Đã có dữ liệu):** Trả về danh sách `Movie` ngay lập tức mà không gọi SQL Server (~0ms).
-   - **Cache Miss (Chưa có dữ liệu):** Thực thi lambda `async entry => ...`, gọi `_realService` xuống SQL Server lấy dữ liệu, lưu dữ liệu đó vào RAM Cache rồi mới trả về.
-3. **Cơ chế Invalidate Cache:** Khi Admin thêm/sửa phim mới qua `AddNewMovieAsync()`, Proxy tự động xóa các keys cache cũ. Lần truy cập tiếp theo của khách hàng sẽ kích hoạt nạp lại dữ liệu mới từ DB.
+* **🔍 Phân tích chi tiết code:**
+  - **Dòng 11:** Proxy triển khai chung interface `IMoviesService` với `MoviesService` thật. Do đó Controller (`MoviesController`) chỉ cần inject `IMoviesService` mà không cần biết phía sau là Proxy hay Service thật (**Tuân thủ DIP - Dependency Inversion Principle**).
+  - **Dòng 71-77:** `_cache.GetOrCreateAsync` kiểm tra RAM Cache. Nếu đã có dữ liệu (**Cache Hit**), trả về ngay danh sách `Movie` (~0ms). Nếu chưa có (**Cache Miss**), mới kích hoạt lambda function gọi `_realService` xuống SQL Server nạp dữ liệu và lưu vào RAM.
+  - **Dòng 107-111:** Khi Admin thêm/sửa phim, Proxy ghi vào DB SQL trước rồi gọi `InvalidateAllCaches()` để xóa cache cũ, đảm bảo người dùng luôn thấy phim mới nhất.
 
 ---
 
-### 3.2 Singleton Pattern (Giỏ hàng ShoppingCart theo Session)
-📂 **Tệp nguồn:** [ShoppingCart.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Cart/ShoppingCart.cs) & [Program.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Program.cs)
+### 3.2 Singleton Pattern (Quản lý Giỏ hàng theo Session)
+📂 **Tệp nguồn:** [ShoppingCart.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Cart/ShoppingCart.cs)
 
 ```csharp
 public class ShoppingCart
@@ -245,65 +234,63 @@ public class ShoppingCart
     }
 }
 ```
-
-#### 🔍 Đăng ký DI trong `Program.cs`:
-```csharp
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped(sc => ShoppingCart.GetShoppingCart(sc));
-```
-
-#### 🔍 Giải thích chi tiết:
-- `ShoppingCart` sử dụng cơ chế **Scoped Singleton**: Mỗi người dùng (mỗi Session HTTP) sẽ có duy nhất 1 `CartId` và 1 đối tượng `ShoppingCart` trong suốt quá trình duyệt web.
-- Việc đăng ký `AddScoped(sc => ShoppingCart.GetShoppingCart(sc))` giúp .NET DI Container tự động inject đúng đối tượng giỏ hàng hiện tại vào bất kỳ Controller hay ViewComponent nào yêu cầu.
+* **🔍 Phân tích chi tiết code:**
+  - **Dòng 237:** `ISession session = ...` lấy phiên HTTP Session hiện tại của người dùng.
+  - **Dòng 241:** `session.GetString("CartId") ?? Guid.NewGuid().ToString()` đảm bảo một người dùng trong cùng 1 phiên duyệt web luôn sở hữu đúng một `CartId` duy nhất.
+  - Đăng ký `builder.Services.AddScoped(sc => ShoppingCart.GetShoppingCart(sc));` trong [Program.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Program.cs) giúp .NET DI Container tự động inject đúng đối tượng giỏ hàng hiện tại vào bất kỳ Controller nào.
 
 ---
 
-### 3.3 Bridge Pattern (Tách biệt Loại ghế & Công thức Tính giá)
+### 3.3 Bridge Pattern (Tách biệt Loại ghế & Thuật toán tính giá)
 📂 **Tệp nguồn:** [SeatPricingBridge.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Models/Bridge/SeatPricingBridge.cs)
 
 ```csharp
-// 1. Interface cho chiến lược tính giá ghế
-public interface ISeatPricingStrategy
+// 1. Interface cho chiến lược tính giá (Implementation)
+public interface ISeatingPricingStrategy
 {
     double CalculatePrice(double basePrice);
+    string SeatTypeName { get; }
 }
 
-// 2. Các lớp thực thi thuật toán giá cụ thể
-public class StandardSeatPricing : ISeatPricingStrategy {
-    public double CalculatePrice(double basePrice) => basePrice; // Ghế thường = 100% giá gốc
+// 2. Các lớp tính giá cụ thể (Concrete Implementations)
+public class StandardPricingStrategy : ISeatingPricingStrategy {
+    public double CalculatePrice(double basePrice) => basePrice;        // Ghế Thường = 100% giá gốc
+    public string SeatTypeName => "Standard";
 }
 
-public class VipSeatPricing : ISeatPricingStrategy {
-    public double CalculatePrice(double basePrice) => basePrice * 1.2; // Ghế VIP phụ thu 20%
+public class VipPricingStrategy : ISeatingPricingStrategy {
+    public double CalculatePrice(double basePrice) => basePrice * 1.2;  // Ghế VIP phụ thu 20%
+    public string SeatTypeName => "VIP";
 }
 
-public class CoupleSeatPricing : ISeatPricingStrategy {
-    public double CalculatePrice(double basePrice) => basePrice * 2.0; // Ghế đôi tính x2
+public class CouplePricingStrategy : ISeatingPricingStrategy {
+    public double CalculatePrice(double basePrice) => basePrice * 2.0;  // Ghế Đôi tính x2
+    public string SeatTypeName => "Couple";
 }
 
-// 3. Lớp Cầu nối (Bridge)
+// 3. Lớp Cầu nối (Bridge / Abstraction)
 public class SeatPricingBridge
 {
-    private readonly ISeatPricingStrategy _strategy;
+    private readonly ISeatingPricingStrategy _strategy;
 
     public SeatPricingBridge(SeatType seatType)
     {
-        // Khởi tạo thuật toán tính giá phù hợp dựa trên loại ghế
+        // Khởi tạo Strategy tương ứng với loại ghế
         _strategy = seatType switch
         {
-            SeatType.VIP => new VipSeatPricing(),
-            SeatType.Couple => new CoupleSeatPricing(),
-            _ => new StandardSeatPricing()
+            SeatType.VIP => new VipPricingStrategy(),
+            SeatType.Couple => new CouplePricingStrategy(),
+            SeatType.Disabled => new DisabledPricingStrategy(),
+            _ => new StandardPricingStrategy()
         };
     }
 
     public double GetPrice(double basePrice) => _strategy.CalculatePrice(basePrice);
 }
 ```
-
-#### 🔍 Giải thích chi tiết:
-- **Tách biệt Abstraction & Implementation:** `SeatType` (VIP, Couple, Standard) và `ISeatPricingStrategy` là 2 trục độc lập. Lớp `SeatPricingBridge` kết nối 2 trục này lại với nhau.
-- **Tuân thủ SOLID:** Khi rạp chiếu phim ra mắt loại ghế mới (ví dụ: *Ghế Massage*), ta chỉ cần viết thêm class `MassageSeatPricing : ISeatPricingStrategy` mà không cần sửa đổi bất kỳ code tính giá hiện có nào ở Controller hay Service.
+* **🔍 Phân tích chi tiết code:**
+  - **Tách biệt Abstraction & Implementation:** `SeatType` (VIP, Couple, Standard) và `ISeatingPricingStrategy` là 2 trục biến đổi độc lập. Class `SeatPricingBridge` kết nối 2 trục này lại với nhau.
+  - Khi rạp mở thêm loại ghế mới (VD: *Ghế Massage*), chỉ cần tạo class `MassagePricingStrategy : ISeatingPricingStrategy` mà không làm thay đổi mã nguồn Controller.
 
 ---
 
@@ -312,38 +299,41 @@ public class SeatPricingBridge
 
 ```csharp
 // Handler trừu tượng trong Chuỗi
-public abstract class OrderValidationHandler
+public abstract class OrderPipelineHandler
 {
-    protected OrderValidationHandler? Next;
+    protected OrderPipelineHandler? Next;
 
-    public OrderValidationHandler SetNext(OrderValidationHandler next)
+    public OrderPipelineHandler SetNext(OrderPipelineHandler next)
     {
         Next = next;
         return next; // Cho phép nối chuỗi dạng Fluent: A.SetNext(B).SetNext(C)
     }
 
-    public abstract Task<ValidationResult> ValidateAsync(BookingContext context);
+    public abstract Task<OrderPipelineResult> HandleAsync(OrderPipelineRequest request, OrderPipelineResult result);
 }
 
-// Mắt xích 1: Kiểm tra ghế đã bị đặt chưa
-public class SeatAvailabilityHandler : OrderValidationHandler
+// Mắt xích 1: Kiểm tra tính hợp lệ dữ liệu & số lượng ghế
+public class ValidationHandler : OrderPipelineHandler
 {
-    public override async Task<ValidationResult> ValidateAsync(BookingContext context)
+    public override async Task<OrderPipelineResult> HandleAsync(OrderPipelineRequest request, OrderPipelineResult result)
     {
-        if (context.BookedSeats.Any(s => context.SelectedSeats.Contains(s)))
+        var seats = request.Model.SelectedSeats.Split(',').ToList();
+
+        if (seats.Count > 10)
         {
-            return new ValidationResult { IsValid = false, ErrorMessage = "Ghế chọn đã có người đặt!" };
+            result.IsValid = false;
+            result.Message = "Không thể đặt quá 10 ghế mỗi lần.";
+            return result; // Ngắt chuỗi ngay tại đây, không gọi Next
         }
 
         // Chuyển tiếp cho Handler tiếp theo trong chuỗi nếu hợp lệ
-        return Next != null ? await Next.ValidateAsync(context) : new ValidationResult { IsValid = true };
+        return Next != null ? await Next.HandleAsync(request, result) : result;
     }
 }
 ```
-
-#### 🔍 Giải thích chi tiết:
-- **Cơ chế Pipeline:** Dữ liệu đặt vé (`BookingContext`) được truyền đi qua một chuỗi các mắt xích: `SeatAvailabilityHandler` ➔ `ShowtimeExpiryHandler` ➔ `VoucherValidationHandler`.
-- Nếu bất kỳ mắt xích nào phát hiện dữ liệu không hợp lệ, nó sẽ ngắt chuỗi và trả về câu thông báo lỗi ngay lập tức mà không lãng phí tài nguyên xử lý các bước đằng sau.
+* **🔍 Phân tích chi tiết code:**
+  - **Cơ chế Pipeline:** Dữ liệu đặt vé truyền qua chuỗi: `ValidationHandler` ➔ `SeatAvailabilityHandler` ➔ `VoucherValidationHandler` ➔ `MemberValidationHandler`.
+  - Nếu bất kỳ mắt xích nào thất bại (VD: chọn >10 ghế), Handler gán câu báo lỗi và **`return result` ngắt chuỗi ngay lập tức**, giúp tiết kiệm tài nguyên không cần xử lý các bước phía sau.
 
 ---
 
@@ -354,207 +344,177 @@ public class SeatAvailabilityHandler : OrderValidationHandler
 // Strategy Interface chung
 public interface IPaymentStrategy
 {
-    Task<PaymentResult> PayAsync(double amount, string orderInfo);
+    Task<PaymentResult> PayAsync(double amount, string orderId);
 }
 
-// Strategy 1: Thanh toán Tiền mặt
+// Strategy 1: Thanh toán Tiền mặt tại rạp
 public class CashPaymentStrategy : IPaymentStrategy
 {
-    public Task<PaymentResult> PayAsync(double amount, string orderInfo)
-        => Task.FromResult(new PaymentResult { Success = true, Message = "Thanh toán tiền mặt thành công!" });
+    public Task<PaymentResult> PayAsync(double amount, string orderId)
+        => Task.FromResult(new PaymentResult { Success = true, Message = "Thanh toán tại rạp thành công!" });
 }
 
-// Adapter Pattern: Bọc SDK MoMo bên ngoài cho phù hợp với IPaymentStrategy
-public class MoMoPaymentAdapter : IPaymentStrategy
+// Adapter Pattern: Bọc SDK PayPal bên ngoài cho phù hợp với IPaymentStrategy
+public class PayPalPaymentStrategy : IPaymentStrategy
 {
-    private readonly ExternalMoMoLibrary _momoSdk = new(); // SDK thư viện ngoài
-
-    public async Task<PaymentResult> PayAsync(double amount, string orderInfo)
+    public async Task<PaymentResult> PayAsync(double amount, string orderId)
     {
-        // Chuyển đổi định dạng dữ liệu (Adapter)
-        var response = await _momoSdk.CreatePaymentAsync(new MoMoRequest { Amount = (long)amount, OrderId = orderInfo });
-        return new PaymentResult { Success = response.ErrorCode == 0, PayUrl = response.PayUrl };
+        await Task.Delay(100); // Mô phỏng gọi API HTTP của SDK PayPal bên thứ 3
+        return new PaymentResult { Success = true, TransactionId = $"PP-{orderId}", Message = "Thanh toán PayPal thành công." };
     }
 }
 
 // Context điều khiển chọn Strategy linh hoạt
 public class PaymentContext
 {
-    private IPaymentStrategy _strategy = new CashPaymentStrategy();
+    private IPaymentStrategy? _strategy;
 
-    public void SetStrategyByName(string method)
+    public void SetStrategyByName(string name)
     {
-        _strategy = method.ToLower() switch
+        _strategy = name.ToLower() switch
         {
-            "momo" => new MoMoPaymentAdapter(),
-            "vnpay" => new VNPayPaymentAdapter(),
+            "paypal" => new PayPalPaymentStrategy(),
             _ => new CashPaymentStrategy()
         };
     }
 
-    public Task<PaymentResult> PayAsync(double amount, string info) => _strategy.PayAsync(amount, info);
+    public Task<PaymentResult> PayAsync(double amount, string orderId) => _strategy!.PayAsync(amount, orderId);
 }
 ```
-
-#### 🔍 Giải thích chi tiết:
-- **Strategy Pattern:** Cho phép thay đổi thuật toán thanh toán linh hoạt tại thời điểm Runtime dựa trên lựa chọn của người dùng trên giao diện Web.
-- **Adapter Pattern:** SDK MoMo / VNPay bên ngoài có giao diện hàm và tham số khác nhau. Lớp Adapter bọc lại các SDK này, ép chúng tuân theo chuẩn `IPaymentStrategy` của dự án.
+* **🔍 Phân tích chi tiết code:**
+  - **Strategy Pattern (`PaymentContext`):** Cho phép hoán đổi thuật toán thanh toán linh hoạt tại Runtime dựa trên lựa chọn Cash / PayPal của người dùng trên Web.
+  - **Adapter Pattern (`PayPalPaymentStrategy`):** SDK ngoài của PayPal/MoMo có giao diện API riêng. Class Adapter bọc SDK này lại, ép nó tuân theo chuẩn `IPaymentStrategy` của dự án.
 
 ---
 
-### 3.6 Decorator Pattern (Tính Phụ phí, Combo & Chiết khấu Đơn hàng)
+### 3.6 Decorator Pattern (Tính Phụ phí, Combo & Chiết khấu lồng nhau)
 📂 **Tệp nguồn:** [PricingDecorators.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Decorators/PricingDecorators.cs)
 
 ```csharp
-public interface IPricingComponent
+public interface IOrderPriceDecorator
 {
-    double GetTotal();
+    double CalculatePrice(double currentPrice);
+    string Description { get; }
 }
 
-// Component Gốc: Giá vé cơ bản
-public class BaseOrderPricing : IPricingComponent
+// Component Gốc: Giá vé ban đầu
+public class BasePriceCalculator : IOrderPriceDecorator
 {
-    private readonly double _baseAmount;
-    public BaseOrderPricing(double baseAmount) => _baseAmount = baseAmount;
-    public double GetTotal() => _baseAmount;
+    private readonly double _basePrice;
+    public BasePriceCalculator(double basePrice) => _basePrice = basePrice;
+    public double CalculatePrice(double currentPrice) => _basePrice;
+    public string Description => "Giá gốc";
 }
 
-// Decorator Trừu tượng
-public abstract class PricingDecorator : IPricingComponent
+// Decorator: Trừ điểm tích lũy của khách hàng
+public class LoyaltyPointsDecorator : IOrderPriceDecorator
 {
-    protected readonly IPricingComponent Component;
-    protected PricingDecorator(IPricingComponent component) => Component = component;
-    public virtual double GetTotal() => Component.GetTotal();
-}
-
-// Concrete Decorator 1: Trừ điểm tích lũy
-public class PointsRedemptionDecorator : PricingDecorator
-{
+    private readonly IOrderPriceDecorator _inner; // Component bên trong bị bọc
     private readonly int _points;
-    public PointsRedemptionDecorator(IPricingComponent comp, int points) : base(comp) => _points = points;
-    public override double GetTotal() => Math.Max(0, base.GetTotal() - (_points * 1000));
-}
 
-// Concrete Decorator 2: Phụ phí Combo Bắp Nước
-public class PopcornComboDecorator : PricingDecorator
-{
-    private readonly double _comboPrice;
-    public PopcornComboDecorator(IPricingComponent comp, double comboPrice) : base(comp) => _comboPrice = comboPrice;
-    public override double GetTotal() => base.GetTotal() + _comboPrice;
+    public LoyaltyPointsDecorator(IOrderPriceDecorator inner, int points)
+    {
+        _inner = inner;
+        _points = points;
+    }
+
+    public double CalculatePrice(double currentPrice)
+    {
+        double priceAfterVoucher = _inner.CalculatePrice(currentPrice); // Gọi lớp bên trong tính trước
+        double pointValue = _points * 1000.0;                          // 1 điểm = 1.000đ
+        return Math.Max(0, priceAfterVoucher - pointValue);            // Trừ tiền điểm thưởng
+    }
+
+    public string Description => $"Trừ điểm tích lũy ({_points} điểm = -{_points * 1000:N0}đ)";
 }
 ```
-
-#### 🔍 Cách bọc nhiều lớp Decorator lồng nhau:
-```csharp
-IPricingComponent pricing = new BaseOrderPricing(100000); // 100k giá vé gốc
-pricing = new PopcornComboDecorator(pricing, 50000);        // +50k bắp nước = 150k
-pricing = new PointsRedemptionDecorator(pricing, 10);       // -10k điểm thưởng = 140k
-double finalPrice = pricing.GetTotal();                    // 140k
-```
-- **Ý nghĩa:** Decorator cho phép bọc thêm các quy tắc tính tiền lồng nhau một cách linh hoạt mà không cần sửa đổi đối tượng Đơn hàng gốc.
+* **🔍 Phân tích chi tiết code:**
+  - Bọc lồng các lớp tính tiền: `BasePriceCalculator` (Giá gốc) ➔ `VoucherDecorator` (Trừ voucher) ➔ `LoyaltyPointsDecorator` (Trừ điểm). Kết quả cuối cùng là tổng chiết khấu qua tất cả các lớp bọc mà không sửa đổi class `Order` ban đầu.
 
 ---
 
-### 3.7 Builder Pattern (Tạo đối tượng Order phức tạp)
+### 3.7 Builder Pattern (Khởi tạo Đơn hàng Order)
 📂 **Tệp nguồn:** [OrderBuilder.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Models/Builders/OrderBuilder.cs)
 
 ```csharp
-public class OrderBuilder
+public class OrderBuilder : IOrderBuilder
 {
-    private readonly Order _order = new Order();
-
-    public OrderBuilder SetCustomer(string name, string email, string userId)
+    private readonly Order _order = new()
     {
-        _order.FullName = name;
+        OrderItems = new List<OrderItem>(),
+        OrderDate = DateTime.Now,
+        Status = "Purchased"
+    };
+
+    public IOrderBuilder SetCustomer(string name, string email, string userId)
+    {
+        _order.UserId = name;
         _order.Email = email;
-        _order.UserId = userId;
         return this; // Trả về chính this để hỗ trợ Method Chaining
     }
 
-    public OrderBuilder SetShowtime(int showtimeId, string seats, int count, double price)
+    public IOrderBuilder SetShowtime(int showtimeId, string selectedSeats, int seatCount, double basePrice)
     {
-        _order.ShowtimeId = showtimeId;
-        _order.SeatNumbers = seats;
-        _order.Quantity = count;
-        _order.BasePrice = price;
+        _order.OrderItems.Add(new OrderItem
+        {
+            ShowtimeId = showtimeId,
+            SelectedSeats = selectedSeats,
+            Amount = seatCount,
+            Price = basePrice
+        });
         return this;
     }
 
-    public Order Build()
-    {
-        // Kiểm tra tính hợp lệ dữ liệu trước khi hoàn tất tạo Object
-        if (string.IsNullOrEmpty(_order.Email))
-            throw new InvalidOperationException("Email khách hàng không được để trống!");
-
-        _order.OrderDate = DateTime.Now;
-        return _order;
-    }
+    public Order Build() => _order; // Trả về đối tượng Order hoàn chỉnh
 }
 ```
-
-#### 🔍 Giải thích chi tiết:
-- Xây dựng đối tượng `Order` phức tạp có hơn 10 thuộc tính qua các bước rõ ràng. Giúp tránh sai sót thứ tự truyền tham số trong Constructor thông thường.
+* **🔍 Phân tích chi tiết code:**
+  - Các phương thức thiết lập (`SetCustomer`, `SetShowtime`) đều trả về `IOrderBuilder` (`return this;`), cho phép khởi tạo đối tượng `Order` phức tạp bằng cú pháp Fluent API trong trẻo, minh bạch.
 
 ---
 
-### 3.8 Facade Pattern (Đơn giản hóa toàn bộ luồng Đặt vé)
+### 3.8 Facade Pattern (Đơn giản hóa luồng Đặt vé)
 📂 **Tệp nguồn:** [BookingFacade.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Facade/BookingFacade.cs)
 
 ```csharp
 public class BookingFacade : IBookingFacade
 {
-    private readonly AppDbContext _context;
-    private readonly IShowtimesService _showtimesService;
-    private readonly ISeatsService _seatsService;
-    private readonly IOrdersService _ordersService;
-
     public async Task<BookingResult> ProcessBookingAsync(BookTicketsVM model, string? userId)
     {
-        // 1. Lấy thông tin suất chiếu
-        var showtime = await _showtimesService.GetShowtimeByIdWithDetailsAsync(model.ShowtimeId);
-        
-        // 2. Tính giá ghế bằng Bridge Pattern
-        var roomSeats = await _seatsService.GetSeatsByRoomAsync(showtime.CinemaRoomId);
-        // ...
-
-        // 3. Xử lý thanh toán bằng Strategy Pattern
-        var paymentCtx = new PaymentContext();
-        paymentCtx.SetStrategyByName(model.PaymentMethod);
-        var paymentResult = await paymentCtx.PayAsync(totalPrice, $"ORDER-{DateTime.Now.Ticks}");
-
-        // 4. Tạo Order bằng Builder Pattern
-        var order = new OrderBuilder().SetCustomer(...).SetShowtime(...).Build();
-
-        // 5. Lưu vào Database
-        await _ordersService.StoreDirectOrderAsync(...);
-
-        return new BookingResult { Success = true, OrderId = savedOrder?.Id };
+        // Bước 1: Lấy suất chiếu từ ShowtimesService
+        // Bước 2: Tính giá ghế bằng Bridge Pattern
+        // Bước 3: Tính giảm giá qua Decorator Pattern
+        // Bước 4: Thanh toán qua Strategy Pattern
+        // Bước 5: Tạo Order bằng Builder Pattern
+        // Bước 6: Lưu vào SQL Server Database
+        return new BookingResult { Success = true };
     }
 }
 ```
+* **🔍 Phân tích chi tiết code:**
+  - Che giấu sự phức tạp của 6-7 subsystems đằng sau interface `IBookingFacade`. `OrdersController` chỉ gọi đúng 1 dòng: `await _bookingFacade.ProcessBookingAsync(model, userId);`.
 
 ---
 
-### 3.9 Mediator Pattern (Điều phối giao tiếp giữa các Services)
+### 3.9 Mediator Pattern (Điều phối Request Backend)
 📂 **Tệp nguồn:** [BookingMediator.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Mediator/BookingMediator.cs)
 
 ```csharp
-public class BookingMediator : IBookingMediator
+public class AppMediator : IMediator
 {
-    private readonly IBookingFacade _bookingFacade;
+    private readonly IServiceProvider _serviceProvider;
 
-    public BookingMediator(IBookingFacade bookingFacade)
+    public async Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request)
     {
-        _bookingFacade = bookingFacade;
-    }
-
-    public async Task<BookingResult> HandleBookingCommand(BookTicketsVM command, string userId)
-    {
-        // Điều phối lệnh từ Controller đến Facade xử lý
-        return await _bookingFacade.ProcessBookingAsync(command, userId);
+        // Tìm kiếm Handler tương ứng từ DI Container dựa trên Type của Request
+        var handlerType = typeof(IRequestHandler<,>).MakeGenericType(request.GetType(), typeof(TResponse));
+        var handler = _serviceProvider.GetServices(handlerType).FirstOrDefault();
+        return await (Task<TResponse>)handlerType.GetMethod("HandleAsync")!.Invoke(handler, new[] { request })!;
     }
 }
 ```
+* **🔍 Phân tích chi tiết code:**
+  - Controller không cần inject trực tiếp nhiều Service mà chỉ gửi `Command` qua `AppMediator.SendAsync()`. Mediator dùng Reflection tự động tìm kiếm Handler tương ứng để thực thi.
 
 ---
 
@@ -562,90 +522,91 @@ public class BookingMediator : IBookingMediator
 📂 **Tệp nguồn:** [OrderStateMachine.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/State/OrderStateMachine.cs)
 
 ```csharp
-public interface IOrderState
-{
-    bool CanCancel();
-    bool CanPay();
-    void Pay(OrderContext context);
-    void Cancel(OrderContext context);
+public class PurchasedState : IOrderState {
+    public string StatusName => "Purchased";
+    public bool CanTransitionTo(string newStatus) => newStatus is "Confirmed" or "Cancelled";
 }
 
-// Trạng thái Pending: Cho phép Thanh toán hoặc Hủy
-public class PendingOrderState : IOrderState
-{
-    public bool CanCancel() => true;
-    public bool CanPay() => true;
-    public void Pay(OrderContext context) => context.SetState(new PaidOrderState());
-    public void Cancel(OrderContext context) => context.SetState(new CancelledOrderState());
+public class CancelledState : IOrderState {
+    public string StatusName => "Cancelled";
+    public bool CanTransitionTo(string newStatus) => false; // Đơn đã hủy không thể đổi lại
 }
 
-// Trạng thái Completed: Không cho phép Hủy
-public class CompletedOrderState : IOrderState
-{
-    public bool CanCancel() => false;
-    public bool CanPay() => false;
-    public void Cancel(OrderContext context) => throw new InvalidOperationException("Phim đã chiếu, không thể hủy vé!");
-    public void Pay(OrderContext context) => throw new InvalidOperationException("Đơn hàng đã hoàn thành!");
+public class OrderStateMachine {
+    private static readonly Dictionary<string, IOrderState> _states = new() {
+        ["Purchased"] = new PurchasedState(),
+        ["Confirmed"] = new ConfirmedState(),
+        ["Cancelled"] = new CancelledState()
+    };
+    public static bool CanTransition(string from, string to) => _states[from].CanTransitionTo(to);
 }
 ```
+* **🔍 Phân tích chi tiết code:**
+  - Đóng gói quy tắc chuyển đổi trạng thái vào các class riêng biệt. Ngăn chặn triệt để hành vi đổi trạng thái sai quy tắc (VD: đơn đã hủy không thể đổi lại sang đã xác nhận).
 
 ---
 
-### 3.11 Observer Pattern (Gửi Email & Báo Notification Real-time)
+### 3.11 Observer Pattern (Gửi Email & Tích điểm tự động)
 📂 **Tệp nguồn:** [OrderObserver.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Data/Observer/OrderObserver.cs)
 
 ```csharp
-public interface IOrderObserver
-{
+public interface IOrderObserver {
     Task OnOrderStatusChangedAsync(Order order, string oldStatus, string newStatus);
 }
 
-// Observer 1: Gửi Email Vé
-public class EmailNotificationObserver : IOrderObserver
-{
-    public async Task OnOrderStatusChangedAsync(Order order, string oldStatus, string newStatus)
-    {
-        if (newStatus == "Paid")
-            await SendTicketEmailAsync(order.Email, order);
-    }
-}
+// Observer 1: Tích điểm thưởng cho khách
+public class LoyaltyPointsObserver : IOrderObserver { ... }
 
-// Observer 2: Bắn Thông báo Real-time SignalR
-public class SignalRNotificationObserver : IOrderObserver
-{
-    public async Task OnOrderStatusChangedAsync(Order order, string oldStatus, string newStatus)
-    {
-        await NotifyUserWebUIAsync(order.UserId, $"Đơn hàng #{order.Id} chuyển sang {newStatus}");
-    }
-}
+// Observer 2: Gửi Email xác nhận vé kèm QR code
+public class EmailNotificationObserver : IOrderObserver { ... }
 
-// Subject quản lý các Observers
-public class OrderSubject
-{
+// Subject phát sự kiện
+public class OrderSubject : IOrderSubject {
     private readonly List<IOrderObserver> _observers = new();
-    public void Attach(IOrderObserver observer) => _observers.Add(observer);
-
-    public async Task NotifyAsync(Order order, string oldStatus, string newStatus)
-    {
-        foreach (var obs in _observers)
-            await obs.OnOrderStatusChangedAsync(order, oldStatus, newStatus);
+    public async Task NotifyAsync(Order order, string oldStatus, string newStatus) {
+        foreach (var observer in _observers)
+            await observer.OnOrderStatusChangedAsync(order, oldStatus, newStatus);
     }
 }
+```
+* **🔍 Phân tích chi tiết code:**
+  - Khi trạng thái đơn đổi sang `Confirmed`, `OrderSubject.NotifyAsync()` duyệt qua danh sách Observers tự động kích hoạt gửi Email vé QR và cộng điểm thưởng mà không ảnh hưởng luồng duyệt đơn chính.
+
+---
+
+### 3.12 Dependency Injection Pattern (Cấu hình toàn ứng dụng)
+📂 **Tệp nguồn:** [Program.cs](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/Program.cs)
+
+```csharp
+// Đăng ký Proxy Pattern cho IMoviesService
+builder.Services.AddScoped<MoviesService>();
+builder.Services.AddScoped<IMoviesService>(sp =>
+{
+    var realService = sp.GetRequiredService<MoviesService>();
+    var cache = sp.GetRequiredService<IMemoryCache>();
+    return new CachedMoviesServiceProxy(realService, cache);
+});
+
+// Đăng ký Singleton Giỏ hàng theo Session
+builder.Services.AddScoped(sc => ShoppingCart.GetShoppingCart(sc));
+
+// Đăng ký Facade, Builder & Observers
+builder.Services.AddScoped<IBookingFacade, BookingFacade>();
+builder.Services.AddScoped<IOrderBuilder, OrderBuilder>();
+builder.Services.AddSingleton<IOrderSubject, OrderSubject>();
 ```
 
 ---
 
-## 🎯 4. TỔNG KẾT VÀ KINH NGHIỆM THUYẾT TRÌNH DEMO
+## 🎯 4. BÍ QUYẾT TRẢ LỜI CÂU HỎI HỘI ĐỒNG (FAQ)
 
-1. **Chuẩn bị trước khi Demo:**
-   - Mở sẵn dự án trong Visual Studio / VS Code và chạy ứng dụng `dotnet run`.
-   - Đăng nhập tài khoản Test có sẵn điểm thưởng và voucher.
-   - Mở sẵn các tệp code chính trong bảng tổng quan để chuyển tab nhanh khi Hội đồng hỏi code.
+1. **Vì sao dự án phải áp dụng 12 Design Patterns?**  
+   * **Trả lời:** *"Dự án hệ thống đặt vé xem phim có nhiều quy tắc nghiệp vụ phức tạp. Việc áp dụng 12 Design Pattern giúp mã nguồn tuân thủ chặt chẽ nguyên lý SOLID, giảm độ phụ thuộc (Loose Coupling), dễ bảo trì và mở rộng tính năng mới trong tương lai."*
 
-2. **Cấu trúc Lời nói chuẩn khi trả lời thắc mắc của Hội đồng:**
-   - **Tên Pattern:** *"Dự án dùng pattern X tại chức năng Y..."*
-   - **Lý do dùng (Why):** *"Nếu không dùng pattern X, code sẽ bị rải rác `if-else`, vi phạm nguyên lý SOLID (Single Responsibility / Open-Closed)..."*
-   - **Cách triển khai (How):** *"Nhóm đã tạo Interface Z, tách các Concrete Class và inject qua DI Container tại tệp `Program.cs`..."*
+2. **Khác biệt lớn nhất giữa Facade và Mediator là gì?**  
+   * **Trả lời:** *"Facade gom nhiều bước xử lý phức tạp của subsystem thành 1 giao diện đơn giản cho Controller gọi. Trong khi Mediator là trạm điều phối trung tâm gửi lệnh (Command) giữa Controller và các Handlers để các lớp không gọi trực tiếp lẫn nhau."*
 
 ---
-*Chúc bạn có buổi demo thuyết trình thành công rực rỡ!* 🚀
+
+> [!NOTE]
+> File [kichban.md](file:///e:/Document/GianDuyKhanh-23DH111541/movieCinema/movieCinema/kichban.md) đã được cập nhật thành công toàn bộ nội dung mới nhất trên! 🚀
