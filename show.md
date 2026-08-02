@@ -1,892 +1,99 @@
-# Kịch bản demo MovieCinema — Design Pattern đã áp dụng
+# Kịch bản demo Design Pattern trong dự án MovieCinema
 
-> **Thời lượng:** 30 phút
+> **Mục đích:** Dùng tài liệu này để thuyết trình/demo trực tiếp web đặt vé xem phim và giải thích design pattern đang được áp dụng trong source code.
 >
-> Tài liệu này chỉ trình bày những pattern có code thật trong project MovieCinema. Mỗi pattern đều có: chức năng trên web, file cần mở, đoạn code tiêu biểu và lời giải thích.
+> **Thời lượng đề xuất:** 10–15 phút.
+>
+> **Luồng demo chính:** Xem danh sách phim → xem chi tiết → chọn suất chiếu/ghế → đặt vé → quản trị xác nhận/hủy/hoàn tiền.
 
 ---
 
-# PHẦN I — MỞ ĐẦU VÀ KIẾN TRÚC NỀN TẢNG (2 phút)
+## 1. Mở đầu bài demo
 
----
+### Lời dẫn
 
-## 1. Giới thiệu hệ thống
+“MovieCinema là web đặt vé xem phim xây dựng bằng ASP.NET Core MVC, Entity Framework Core và SQL Server. Điểm chính của phần demo không chỉ là giao diện đặt vé, mà là cách code được tổ chức để mỗi nghiệp vụ có thể thay đổi và mở rộng mà không làm Controller trở nên quá phức tạp.
 
-### Lời nói
+Trong một luồng đặt vé, hệ thống cần xử lý nhiều việc: lấy suất chiếu, kiểm tra ghế, tính giá theo loại ghế, kiểm tra voucher/điểm thành viên, chọn phương thức thanh toán, tạo Order, lưu database và phản hồi trạng thái. Các design pattern giúp chia các trách nhiệm này thành những thành phần độc lập.”
 
-> "MovieCinema là website đặt vé xem phim xây dựng bằng ASP.NET Core MVC, Entity Framework Core và SQL Server. Người dùng có thể xem phim, xem suất chiếu, chọn ghế, áp dụng voucher, thanh toán và theo dõi đơn hàng. Admin có thể quản lý booking, xác nhận, hủy, hoàn tiền và xem báo cáo.
->
-> Trong demo, em sẽ đi theo luồng: xem danh sách phim → chọn ghế → đặt vé → tạo Order → Admin xử lý trạng thái. Sau mỗi bước, em sẽ giải thích design pattern nằm ở đâu và pattern đó giải quyết vấn đề gì."
+### Kiến trúc tổng quát
 
+```text
+Browser
+   |
+   v
+Controllers (MoviesController, OrdersController, ...)
+   |  Dependency Injection
+   v
+Services / Facade / Mediator / Pipeline
+   |
+   v
+AppDbContext (Entity Framework Core)
+   |
+   v
+SQL Server
+```
 
-### Mở `Program.cs` — Dependency Injection
+Các thành phần được đăng ký trong `Program.cs` bằng Dependency Injection. Ví dụ:
 
 ```csharp
 builder.Services.AddScoped<IOrdersService, OrdersService>();
-builder.Services.AddScoped<ISeatsService, SeatsService>();
 builder.Services.AddScoped<IShowtimesService, ShowtimesService>();
+builder.Services.AddScoped<ISeatsService, SeatsService>();
 builder.Services.AddScoped<IBookingFacade, BookingFacade>();
 builder.Services.AddScoped<IOrderBuilder, OrderBuilder>();
 builder.Services.AddScoped<IMediator, AppMediator>();
 ```
 
-### Giải thích
-
-> "Project dùng Dependency Injection: Controller nhận interface qua constructor, không tự tạo service bằng `new`. Ví dụ `OrdersController` nhận `IBookingFacade`, `IOrdersService`, `ISeatsService`. Nhờ đó các class ít phụ thuộc cứng vào nhau, dễ thay implementation và dễ mock khi test.
->
-> MVC, Service Layer, Repository và DI là kiến trúc nền tảng, có mặt khắp nơi. Từ đây, em sẽ trình bày từng design pattern cụ thể trong các chức năng chính."
+**Giải thích:** Controller phụ thuộc vào interface thay vì tự tạo class bằng `new`. Nhờ vậy, implementation có thể thay đổi, dễ mock khi test và các lớp ít phụ thuộc cứng vào nhau.
 
 ---
 
-# PHẦN II — CREATIONAL PATTERNS (Nhóm khởi tạo — 7 phút)
+## 2. Chuẩn bị trước khi demo
+
+1. Mở solution `MovieCinema.csproj` trong Visual Studio/IDE.
+2. Kiểm tra connection string trong `appsettings.json`.
+3. Đảm bảo SQL Server đang chạy và database đã có seed data.
+4. Chạy project bằng Visual Studio hoặc:
+
+```bash
+dotnet run
+```
+
+5. Mở URL được hiển thị trên terminal, thường là `https://localhost:<port>`.
+6. Chuẩn bị hai tài khoản:
+   - Tài khoản khách hàng để đặt vé.
+   - Tài khoản `Admin` để xác nhận, hủy, hoàn tiền và xem báo cáo.
+
+> Nếu database chưa có dữ liệu, chạy migration/seed theo cấu hình của project trước khi trình bày. Không nên chạy thao tác xóa toàn bộ order trong buổi demo thật.
 
 ---
 
-## 2. Singleton — `ShoppingCart` và `OrderSubject` (1 phút)
+# 3. Demo theo luồng người dùng
 
-### Chức năng trên web
+## Bước 1 — Xem danh sách phim: MVC + Service Layer + Proxy
 
-- `ShoppingCart` giữ một giỏ hàng duy nhất cho mỗi phiên người dùng.
-- `OrderSubject` là một đối tượng duy nhất quản lý danh sách Observer.
+### Thao tác trên web
 
-### File cần mở
+1. Mở trang chủ.
+2. Chỉ ra danh sách phim đang hiển thị.
+3. Có thể refresh trang hai lần để giải thích cơ chế cache.
 
-- `Data/Cart/ShoppingCart.cs`
-- `Data/Observer/OrderObserver.cs`
-- `Program.cs`
+### Code cần mở
 
-### Code trong `Program.cs`
+- `Controllers/MoviesController.cs:10`
+- `Controllers/MoviesController.cs:21`
+- `Data/Proxy/CachedMoviesServiceProxy.cs:11`
+- `Program.cs:38-66`
 
-```csharp
-builder.Services.AddSingleton<IOrderSubject, OrderSubject>();
-builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-builder.Services.AddScoped(sc => ShoppingCart.GetShoppingCart(sc));
-```
-
-### Code trong `ShoppingCart.cs`
-
-```csharp
-public static ShoppingCart GetShoppingCart(IServiceProvider services)
-{
-    var session = services
-        .GetRequiredService<IHttpContextAccessor>()
-        ?.HttpContext.Session;
-    var context = services.GetService<AppDbContext>();
-    string cartId = session.GetString("CartId")
-        ?? Guid.NewGuid().ToString();
-    session.SetString("CartId", cartId);
-    return new ShoppingCart(context) { ShoppingCartId = cartId };
-}
-```
-
-### Code trong `OrderSubject.cs`
-
-```csharp
-public class OrderSubject : IOrderSubject
-{
-    private readonly List<IOrderObserver> _observers = new();
-    private readonly IServiceScopeFactory _scopeFactory;
-    private bool _initialized;
-    private readonly object _lock = new();
-
-    public async Task NotifyAsync(Order order,
-        string oldStatus, string newStatus)
-    {
-        var observers = GetScopedObservers();
-        foreach (var observer in observers)
-        {
-            try
-            {
-                await observer.OnOrderStatusChangedAsync(
-                    order, oldStatus, newStatus);
-            }
-            catch
-            {
-                // Log lỗi nhưng không ngăn các observer khác
-            }
-        }
-    }
-}
-```
-
-### Giải thích
-
-> "Singleton đảm bảo một đối tượng duy nhất. `OrderSubject` đăng ký `AddSingleton` trong DI, có một phiên bản duy nhất quản lý danh sách Observer trong toàn bộ application. `ShoppingCart` dùng session để đảm bảo một giỏ hàng cho mỗi phiên người dùng."
-
----
-
-## 3. Factory Method — đăng ký service trong DI (1 phút)
-
-### Chức năng trên web
-
-Tất cả service được đăng ký trong `Program.cs` — DI container tạo instance khi cần.
-
-### File cần mở
-
-`Program.cs`
-
-### Code
-
-```csharp
-builder.Services.AddScoped<IActorsService, ActorsService>();
-builder.Services.AddScoped<IProducersService, ProducersService>();
-builder.Services.AddScoped<ICinemasService, CinemasService>();
-builder.Services.AddScoped<ICinemaRoomsService, CinemaRoomsService>();
-builder.Services.AddScoped<ICategoriesService, CategoriesService>();
-builder.Services.AddScoped<IOrdersService, OrdersService>();
-builder.Services.AddScoped<ISeatsService, SeatsService>();
-builder.Services.AddScoped<IShowtimesService, ShowtimesService>();
-builder.Services.AddScoped<IVouchersService, VouchersService>();
-builder.Services.AddScoped<MoviesService>();
-builder.Services.AddScoped<ISeatingPricingStrategy, StandardPricingStrategy>();
-builder.Services.AddScoped<IOrderBuilder, OrderBuilder>();
-builder.Services.AddScoped<IPaymentStrategy, CashPaymentStrategy>();
-```
-
-### Giải thích
-
-> "DI container trong ASP.NET Core hoạt động như một Factory: với `AddScoped<IOrdersService, OrdersService>()`, khi có class yêu cầu `IOrdersService`, container sẽ tạo instance `OrdersService`. Mỗi request HTTP sẽ có một scope chứa các service này.
->
-> Đây là Factory Method ở mức framework: interface là sản phẩm, DI container là Factory, và implementation là subclass tương ứng."
-
----
-
-## 4. Builder — tạo Order nhiều bước (2 phút)
-
-### Chức năng trên web
-
-Đặt vé thành công, Order được tạo với nhiều thuộc tính: khách hàng, email, suất chiếu, ghế, voucher, điểm, phương thức thanh toán, tổng tiền.
-
-### File cần mở
-
-- `Models/Builders/OrderBuilder.cs`
-- `Data/Facade/BookingFacade.cs`
-
-### Code trong `OrderBuilder.cs`
-
-```csharp
-public interface IOrderBuilder
-{
-    IOrderBuilder SetCustomer(string name, string email, string userId);
-    IOrderBuilder SetShowtime(int showtimeId, string selectedSeats,
-                              int seatCount, double basePrice);
-    IOrderBuilder ApplyVoucher(double discountAmount, double orderTotal);
-    IOrderBuilder RedeemPoints(int points, double totalBeforePoints);
-    IOrderBuilder SetPaymentMethod(string method);
-    IOrderBuilder CalculateTotal();
-    Order Build();
-}
-
-public class OrderBuilder : IOrderBuilder
-{
-    private readonly Order _order = new()
-    {
-        OrderItems = new List<OrderItem>(),
-        OrderDate = DateTime.Now,
-        Status = "Purchased"
-    };
-
-    private double _subtotal;
-    private double _finalTotal;
-
-    public IOrderBuilder SetCustomer(string name, string email, string userId)
-    {
-        _order.Email = email;
-        _order.UserId = name;
-        return this;
-    }
-
-    public IOrderBuilder SetShowtime(int showtimeId, string selectedSeats,
-                                     int seatCount, double basePrice)
-    {
-        _subtotal = basePrice * seatCount;
-        var item = new OrderItem
-        {
-            ShowtimeId = showtimeId,
-            SelectedSeats = selectedSeats,
-            Amount = seatCount,
-            Price = basePrice
-        };
-        _order.OrderItems.Add(item);
-        return this;
-    }
-
-    public IOrderBuilder ApplyVoucher(double discountAmount, double orderTotal)
-    {
-        _order.DiscountAmount = Math.Min(discountAmount, orderTotal);
-        return this;
-    }
-
-    public IOrderBuilder RedeemPoints(int points, double totalBeforePoints)
-    {
-        double pointValue = points * 1000.0;
-        _order.PointsRedeemed = (int)Math.Min(pointValue, totalBeforePoints);
-        return this;
-    }
-
-    public IOrderBuilder SetPaymentMethod(string method)
-    {
-        _order.PaymentMethod = method;
-        return this;
-    }
-
-    public IOrderBuilder CalculateTotal()
-    {
-        _finalTotal = _subtotal - _order.DiscountAmount - _order.PointsRedeemed;
-        if (_finalTotal < 0) _finalTotal = 0;
-        _order.TotalPrice = _finalTotal;
-        return this;
-    }
-
-    public Order Build() => _order;
-}
-```
-
-### Gọi từ `BookingFacade.cs`
-
-```csharp
-var order = new OrderBuilder()
-    .SetCustomer(model.Name ?? "Guest", model.Email ?? "", userId ?? "")
-    .SetShowtime(model.ShowtimeId, model.SelectedSeats,
-                 selectedSeats.Count, showtime.Price)
-    .ApplyVoucher(discount, totalPrice)
-    .RedeemPoints(model.PointsRedeemed, totalPrice - discount)
-    .SetPaymentMethod(paymentCtx.CurrentPaymentMethod)
-    .CalculateTotal()
-    .Build();
-```
-
-### Giải thích
-
-> "Order có nhiều dữ liệu: khách hàng, email, suất chiếu, danh sách ghế, voucher, điểm, phương thức thanh toán và tổng tiền. Nếu dùng một constructor với quá nhiều tham số, code sẽ khó đọc và dễ truyền nhầm thứ tự.
->
-> `OrderBuilder` chia quá trình khởi tạo thành các bước có tên rõ ràng và hỗ trợ fluent chain. `CalculateTotal` tập trung công thức tổng tiền, còn `Build` trả về Order hoàn chỉnh. Code gọi đọc như một quy trình nghiệp vụ."
-
----
-
-## 5. Abstract Factory — họ chính sách theo cinema (1 phút)
-
-### Chức năng trên web
-
-Khi có nhiều hệ thống rạp (Galaxy, Lotte, BHD) với chính sách giá/hoàn tiền khác nhau, mỗi cinema cần một bộ strategy khác nhau.
-
-### File cần mở
-
-`DESIGN_PATTERNS_GUIDE.md` mục 2.4 — hướng mở rộng trong architecture.
-
-### Code minh họa
-
-```csharp
-public interface ICinemaFactory
-{
-    IPricingStrategy CreatePricingStrategy();
-    IRefundPolicy CreateRefundPolicy();
-    IMovieSelector CreateMovieSelector();
-    string CinemaName { get; }
-}
-
-public class GalaxyCinemaFactory : ICinemaFactory
-{
-    public string CinemaName => "Galaxy Cinema";
-    public IPricingStrategy CreatePricingStrategy()
-        => new GalaxyPricingStrategy();      // Giảm giá 20% vào thứ Ba
-    public IRefundPolicy CreateRefundPolicy()
-        => new FlexibleRefundPolicy();       // Hoàn 100% trước 24h
-    public IMovieSelector CreateMovieSelector()
-        => new StandardMovieSelector();
-}
-```
-
-### Giải thích
-
-> "Abstract Factory cung cấp interface để tạo **họ các đối tượng liên quan** mà không cần chỉ định class cụ thể. Trong hệ thống đặt vé, mỗi hệ thống rạp có thể có factory riêng với chính sách giá và hoàn tiền khác nhau. Đây là hướng mở rộng đã được tài liệu hóa."
-
----
-
-# PHẦN III — STRUCTURAL PATTERNS (Nhóm cấu trúc — 10 phút)
-
----
-
-## 6. Adapter — bao bọc SDK PayPal (1 phút)
-
-### Chức năng trên web
-
-Chuyển đổi API của SDK PayPal thành `IPaymentGateway` nội bộ mà hệ thống có thể dùng.
-
-### File cần mở
-
-`Data/Strategy/PaymentStrategy.cs` — phần stub `PayPalPaymentStrategy`.
-
-### Code minh họa khi tích hợp thật
-
-```csharp
-public class PayPalAdapter : IPaymentGateway
-{
-    public async Task<PaymentResult> ProcessPaymentAsync(
-        double amount, string currency, String orderId)
-    {
-        // Tạo request theo định dạng PayPal SDK
-        var request = new OrdersCreateRequest();
-        request.RequestBody(new OrderRequest
-        {
-            Intent = "CAPTURE",
-            PurchaseUnits = new[]
-            {
-                new PurchaseUnitRequest
-                {
-                    AmountWithBreakdown = new AmountWithBreakdown
-                    {
-                        CurrencyCode = currency,
-                        Value = amount.ToString("F2")
-                    }
-                }
-            }
-        });
-
-        var response = await paypalClient.Execute(request);
-        return new PaymentResult
-        {
-            Success = response.Result<PayPalOrder>().Status == "COMPLETED",
-            TransactionId = response.Result<PayPalOrder>().Id
-        };
-    }
-}
-```
-
-### Giải thích
-
-> "Adapter chuyển interface PayPal SDK sang interface mà hệ thống nội bộ mong đợi. Trong project hiện tại, `PayPalPaymentStrategy` là stub dùng `Task.Delay`. Khi tích hợp thật, cần `PayPalAdapter` bao bọc SDK để giữ nguyên interface `IPaymentStrategy`."
-
----
-
-## 7. Bridge — tính giá theo loại ghế (2 phút 30 giây)
-
-### Chức năng trên web
-
-1. Chọn rạp/phòng và suất chiếu.
-2. Chọn ghế Standard, VIP, Couple hoặc Disabled.
-3. Quan sát giá ghế thay đổi theo loại.
-4. Có thể mở endpoint: `Orders/GetSeatsForShowtime?showtimeId=<id>`
-
-### File cần mở
-
-- `Controllers/OrdersController.cs`
-- `Models/Bridge/SeatPricingBridge.cs`
-
-### Code trong `OrdersController.cs`
-
-```csharp
-price = new SeatPricingBridge(s.SeatType).GetPrice(showtime.Price),
-isAvailable = s.IsAvailable
-    && !bookedSeats.Contains(s.Row + s.Number.ToString())
-```
-
-### Code trong `SeatPricingBridge.cs`
-
-```csharp
-public interface ISeatingPricingStrategy
-{
-    double CalculatePrice(double basePrice);
-    string SeatTypeName { get; }
-}
-
-public class StandardPricingStrategy : ISeatingPricingStrategy
-{
-    public double CalculatePrice(double basePrice) => basePrice;
-    public string SeatTypeName => "Standard";
-}
-
-public class VipPricingStrategy : ISeatingPricingStrategy
-{
-    public double CalculatePrice(double basePrice) => basePrice * 1.2;
-    public string SeatTypeName => "VIP";
-}
-
-public class CouplePricingStrategy : ISeatingPricingStrategy
-{
-    public double CalculatePrice(double basePrice) => basePrice * 2.0;
-    public string SeatTypeName => "Couple";
-}
-
-public class DisabledPricingStrategy : ISeatingPricingStrategy
-{
-    public double CalculatePrice(double basePrice) => basePrice * 0.5;
-    public string SeatTypeName => "Khuyết tật";
-}
-
-public class SeatPricingBridge
-{
-    private readonly ISeatingPricingStrategy _strategy;
-
-    public SeatPricingBridge(SeatType seatType)
-    {
-        _strategy = seatType switch
-        {
-            SeatType.VIP      => new VipPricingStrategy(),
-            SeatType.Couple   => new CouplePricingStrategy(),
-            SeatType.Disabled => new DisabledPricingStrategy(),
-            _                 => new StandardPricingStrategy()
-        };
-    }
-
-    public double GetPrice(double basePrice)
-        => _strategy.CalculatePrice(basePrice);
-}
-```
-
-### Bảng minh họa
-
-| Loại ghế | Implementation | Giá minh họa (cơ bản 100.000đ) |
-|---|---|---:|
-| Standard | `basePrice` | 100.000 |
-| VIP | `basePrice * 1.2` | 120.000 |
-| Couple | `basePrice * 2.0` | 200.000 |
-| Disabled | `basePrice * 0.5` | 50.000 |
-
-### Giải thích
-
-> "Tại đây có hai phần có thể thay đổi độc lập. Một phần là cách hệ thống yêu cầu tính giá, thể hiện qua `SeatPricingBridge`. Phần còn lại là quy tắc giá của từng loại ghế, thể hiện qua `ISeatingPricingStrategy` và các implementation.
->
-> Bridge tách Abstraction (`SeatPricingBridge`) khỏi Implementation (`Standard/Vip/Couple/Disabled`). Nếu thêm loại ghế Recliner, chỉ cần thêm `ReclinerPricingStrategy` và bổ sung mapping. Không cần rải thêm nhiều điều kiện tính giá trong Controller. Phần hiển thị/chọn ghế và phần tính giá có thể thay đổi độc lập."
-
----
-
-## 8. Composite — ghế theo hàng và phòng (1 phút 30 giây)
-
-### Chức năng trên web
-
-Quản lý ghế theo cấu trúc cây: một phòng chứa nhiều hàng, mỗi hàng chứa nhiều ghế.
-
-### File cần mở
-
-- `Controllers/OrdersController.cs` — phần `GroupBy(s => s.Row)`
-- `DESIGN_PATTERNS_GUIDE.md` mục 3.6
-
-### Code minh họa
-
-```csharp
-public interface ITheaterComponent
-{
-    string Code { get; }
-    double GetPrice(double basePrice);
-    bool IsAvailable(List<string> bookedSeatCodes);
-    int CountSeats();
-}
-
-public class Seat : ITheaterComponent
-{
-    public string Code => $"{Row}{Number}";
-    public string Row { get; set; }
-    public int Number { get; set; }
-    public SeatType SeatType { get; set; }
-
-    public double GetPrice(double basePrice) => SeatType switch
-    {
-        SeatType.VIP      => basePrice * 1.2,
-        SeatType.Couple   => basePrice * 2.0,
-        SeatType.Disabled => basePrice * 0.5,
-        _                 => basePrice
-    };
-
-    public bool IsAvailable(List<string> bookedSeatCodes)
-        => IsAvailableSeat && !bookedSeatCodes.Contains(Code);
-
-    public int CountSeats() => 1;
-}
-
-public class SeatRow : ITheaterComponent
-{
-    public string Row { get; set; }
-    public List<Seat> Seats { get; set; } = new();
-
-    public string Code => $"Row {Row}";
-
-    public double GetPrice(double basePrice)
-        => Seats.Sum(s => s.GetPrice(basePrice));
-
-    public bool IsAvailable(List<string> bookedSeatCodes)
-        => Seats.All(s => s.IsAvailable(bookedSeatCodes));
-
-    public int CountSeats() => Seats.Count;
-
-    public IEnumerable<Seat> GetAvailableSeats(List<string> bookedSeatCodes)
-        => Seats.Where(s => s.IsAvailable(bookedSeatCodes));
-}
-
-public class CinemaRoomComposite : ITheaterComponent
-{
-    public string Name { get; set; }
-    public List<SeatRow> Rows { get; set; } = new();
-
-    public string Code => Name;
-
-    public double GetPrice(double basePrice)
-        => Rows.Sum(r => r.GetPrice(basePrice));
-
-    public bool IsFull(List<string> bookedSeatCodes)
-        => !Rows.SelectMany(r => r.GetAvailableSeats(bookedSeatCodes)).Any();
-
-    public int CountSeats() => Rows.Sum(r => r.CountSeats());
-}
-```
-
-### Giải thích
-
-> "Composite cho phép xử lý đối tượng đơn lẻ (`Seat`) và tổng hợp (`SeatRow`, `CinemaRoomComposite`) qua cùng interface. Tính giá cả phòng hoặc lấy ghế trống đều dùng chung interface `ITheaterComponent`. Trong Controller hiện tại, `GroupBy(s => s.Row)` là cách tiếp cận tương tự Composite."
-
----
-
-## 9. Decorator — xếp chồng giảm giá (2 phút 30 giây)
-
-### Chức năng trên web
-
-Tính giá đơn hàng với nhiều loại khuyến mãi xếp chồng: voucher, điểm tích lũy, Happy Hour.
-
-### File cần mở
-
-`Data/Decorators/PricingDecorators.cs`
-
-### Code
-
-```csharp
-public interface IOrderPriceDecorator
-{
-    double CalculatePrice(double currentPrice);
-    string Description { get; }
-    int Priority { get; }
-}
-
-public class BasePriceCalculator : IOrderPriceDecorator
-{
-    private readonly double _basePrice;
-    public BasePriceCalculator(double basePrice) => _basePrice = basePrice;
-    public double CalculatePrice(double currentPrice) => _basePrice;
-    public string Description => "Giá gốc";
-    public int Priority => 0;
-}
-
-public class VoucherDecorator : IOrderPriceDecorator
-{
-    private readonly IOrderPriceDecorator _inner;
-    private readonly Voucher _voucher;
-
-    public VoucherDecorator(IOrderPriceDecorator inner, Voucher voucher)
-    {
-        _inner = inner;
-        _voucher = voucher;
-    }
-
-    public double CalculatePrice(double currentPrice)
-    {
-        double discounted = _inner.CalculatePrice(currentPrice);
-        if (discounted < _voucher.MinOrderAmount)
-            return discounted;
-
-        double reduction = _voucher.IsPercentage
-            ? discounted * _voucher.DiscountPercentage / 100.0
-            : _voucher.DiscountAmount;
-
-        return Math.Max(0, discounted - Math.Min(reduction, discounted));
-    }
-
-    public string Description => _voucher.IsPercentage
-        ? $"Voucher giảm {_voucher.DiscountPercentage}% (-{_voucher.Code})"
-        : $"Voucher giảm {_voucher.DiscountAmount:N0}đ (-{_voucher.Code})";
-
-    public int Priority => 1;
-}
-
-public class LoyaltyPointsDecorator : IOrderPriceDecorator
-{
-    private readonly IOrderPriceDecorator _inner;
-    private readonly int _points;
-
-    public LoyaltyPointsDecorator(IOrderPriceDecorator inner, int points)
-    {
-        _inner = inner;
-        _points = points;
-    }
-
-    public double CalculatePrice(double currentPrice)
-    {
-        double afterVoucher = _inner.CalculatePrice(currentPrice);
-        double pointValue = _points * 1000.0;
-        return Math.Max(0, afterVoucher - pointValue);
-    }
-
-    public string Description
-        => $"Điểm tích lũy (-{_points * 1000:N0}đ = {_points} điểm)";
-
-    public int Priority => 2;
-}
-
-public class HappyHourDecorator : IOrderPriceDecorator
-{
-    private readonly IOrderPriceDecorator _inner;
-    private readonly TimeSpan _start;
-    private readonly TimeSpan _end;
-    private readonly double _discountPercent;
-
-    public HappyHourDecorator(
-        IOrderPriceDecorator inner,
-        TimeSpan start, TimeSpan end, double discountPercent)
-    {
-        _inner = inner;
-        _start = start;
-        _end = end;
-        _discountPercent = discountPercent;
-    }
-
-    public double CalculatePrice(double currentPrice)
-    {
-        var now = DateTime.Now.TimeOfDay;
-        if (now >= _start && now <= _end)
-        {
-            double basePrice = _inner.CalculatePrice(currentPrice);
-            return basePrice * (1 - _discountPercent / 100.0);
-        }
-        return _inner.CalculatePrice(currentPrice);
-    }
-
-    public string Description
-        => $"Happy Hour {_discountPercent}% (từ {_start:hh\\:mm}–{_end:hh\\:mm})";
-
-    public int Priority => 3;
-}
-```
-
-### Cách xếp lớp trong `OrderPriceCalculator`
-
-```csharp
-IOrderPriceDecorator calc = new BasePriceCalculator(basePrice);
-
-if (vouner != null)
-    calc = new VoucherDecorator(calc, voucher);
-
-if (loyaltyPoints > 0)
-    calc = new LoyaltyPointsDecorator(calc, loyaltyPoints);
-
-if (applyHappyHour)
-    calc = new HappyHourDecorator(calc,
-        new TimeSpan(14, 0, 0),
-        new TimeSpan(17, 0, 0),
-        15.0);
-
-double finalPrice = calc.CalculatePrice(basePrice);
-```
-
-### Sơ đồ xếp lớp
-
-```text
-BasePrice
-   -> VoucherDecorator
-      -> LoyaltyPointsDecorator
-         -> HappyHourDecorator
-```
-
-### Giải thích
-
-> "Mỗi decorator bọc calculator phía trước và thêm một lớp giảm giá. Không cần viết `PriceWithVoucherAndPointsAndHappyHour` cho từng tổ hợp. Các chính sách giảm giá có thể xếp chồng linh hoạt. Có thể thêm `FestivalDiscountDecorator` mà không sửa calculator gốc.
->
-> Đây là Decorator Pattern: gắn thêm trách nhiệm bổ sung vào đối tượng một cách linh hoạt, thay vì dùng kế thừa."
-
----
-
-## 10. Facade — đặt vé qua một cổng duy nhất (2 phút 30 giây)
-
-### Chức năng trên web
-
-1. Chọn 1–2 ghế trống.
-2. Nhập tên và email.
-3. Nhập voucher nếu có.
-4. Chọn phương thức thanh toán.
-5. Nhấn nút đặt vé.
-6. Quan sát màn hình đặt vé thành công và tổng tiền.
-
-### File cần mở
-
-- `Controllers/OrdersController.cs`
-- `Data/Facade/BookingFacade.cs`
-
-### Code trong `OrdersController.cs` — action BookTickets POST
-
-```csharp
-[HttpPost]
-public async Task<IActionResult> BookTickets(BookTicketsVM model)
-{
-    if (!ModelState.IsValid)
-    {
-        TempData["BookingError"] =
-            "Vui lòng nhập đầy đủ thông tin đặt vé hợp lệ.";
-        return RedirectToAction(
-            nameof(BookTickets),
-            new { showtimeId = model.ShowtimeId });
-    }
-
-    var result = await _bookingFacade
-        .ProcessBookingAsync(model, User.Identity?.Name);
-
-    if (!result.Success)
-    {
-        TempData["BookingError"] = result.Message;
-        return RedirectToAction(
-            nameof(BookTickets),
-            new { showtimeId = model.ShowtimeId });
-    }
-
-    return View("BookingCompleted");
-}
-```
-
-### Code trong `BookingFacade.cs` — 9 bước xử lý
-
-```csharp
-public async Task<BookingResult> ProcessBookingAsync(
-    BookTicketsVM model, string? userId)
-{
-    // 1. Validate ModelState
-    if (string.IsNullOrEmpty(model.SelectedSeats))
-        return new BookingResult { Success = false,
-            Message = "Vui lòng chọn ít nhất một ghế." };
-
-    // 2. Lấy Showtime
-    var showtime = await _showtimesService
-        .GetShowtimeByIdWithDetailsAsync(model.ShowtimeId);
-    if (showtime == null)
-        return new BookingResult { Success = false,
-            Message = "Suất chiếu không tồn tại." };
-
-    // 3. Parse ghế
-    var selectedSeats = model.SelectedSeats
-        .Split(',').Select(s => s.Trim())
-        .Where(s => !string.IsNullOrEmpty(s)).ToList();
-
-    // 4. Kiểm tra ghế đã bị đặt chưa
-    var bookedSeats = await _ordersService
-        .GetBookedSeatsForShowtimeAsync(model.ShowtimeId);
-    foreach (var seat in selectedSeats)
-        if (bookedSeats.Contains(seat))
-            return new BookingResult { Success = false,
-                Message = $"Ghế {seat} đã được đặt bởi người khác." };
-
-    // 5. Tính giá theo loại ghế (Bridge)
-    var roomSeats = await _seatsService
-        .GetSeatsByRoomAsync(showtime.CinemaRoomId);
-    double totalPrice = 0;
-    foreach (var seatCode in selectedSeats)
-    {
-        var seat = roomSeats.FirstOrDefault(
-            s => s.Row + s.Number.ToString() == seatCode);
-        var bridge = new SeatPricingBridge(
-            seat?.SeatType ?? SeatType.Standard);
-        totalPrice += bridge.GetPrice(showtime.Price);
-    }
-
-    // 6. Áp dụng voucher
-    double discount = 0;
-    if (!string.IsNullOrEmpty(model.VoucherCode))
-    {
-        var voucher = await _ordersService
-            .GetVoucherByCodeAsync(model.VoucherCode);
-        if (voucher != null && totalPrice >= voucher.MinOrderAmount)
-        {
-            discount = voucher.IsPercentage
-                ? totalPrice * voucher.DiscountPercentage / 100.0
-                : voucher.DiscountAmount;
-        }
-    }
-
-    // 7. Thanh toán (Strategy)
-    var paymentCtx = new PaymentContext();
-    paymentCtx.SetStrategyByName(model.PaymentMethod);
-    var paymentResult = await paymentCtx.PayAsync(
-        totalPrice, $"ORDER-{DateTime.Now.Ticks}");
-    if (!paymentResult.Success)
-        return new BookingResult { Success = false,
-            Message = $"Thanh toán thất bại: {paymentResult.Message}" };
-
-    // 8. Tạo Order (Builder)
-    var order = new OrderBuilder()
-        .SetCustomer(model.Name ?? "Guest", model.Email ?? "", userId ?? "")
-        .SetShowtime(model.ShowtimeId, model.SelectedSeats,
-                     selectedSeats.Count, showtime.Price)
-        .ApplyVoucher(discount, totalPrice)
-        .RedeemPoints(model.PointsRedeemed, totalPrice - discount)
-        .SetPaymentMethod(paymentCtx.CurrentPaymentMethod)
-        .CalculateTotal()
-        .Build();
-
-    // 9. Lưu vào DB
-    await _ordersService.StoreDirectOrderAsync(
-        model.ShowtimeId, model.Name ?? "Guest", model.Email ?? "",
-        model.SelectedSeats, selectedSeats.Count,
-        totalPrice, discount, model.PointsRedeemed,
-        paymentCtx.CurrentPaymentMethod, userId);
-
-    return new BookingResult
-    {
-        Success = true,
-        Message = "Đặt vé thành công!",
-        FinalPrice = totalPrice - discount - (model.PointsRedeemed * 1000),
-        DiscountApplied = discount
-    };
-}
-```
-
-### Sơ đồ gọi từ Controller
-
-```text
-OrdersController
-      |
-      v
-IBookingFacade.ProcessBookingAsync
-      |
-      +-- IShowtimesService
-      +-- ISeatsService
-      +-- IOrdersService
-      +-- SeatPricingBridge  (Bridge)
-      +-- PaymentContext      (Strategy)
-      +-- OrderBuilder        (Builder)
-      +-- Lưu Order vào database
-```
-
-### Giải thích
-
-> "Nếu viết trực tiếp trong Controller, action đặt vé sẽ phải tự lấy suất chiếu, kiểm tra ghế, tính giá, kiểm tra voucher, gọi thanh toán, tạo Order và lưu database. Điều đó làm Controller rất dài và khó test.
->
-> `BookingFacade` cung cấp một API đơn giản là `ProcessBookingAsync`. Bên trong Facade điều phối nhiều subsystem: `IShowtimesService`, `ISeatsService`, `IOrdersService`, Bridge tính giá, Strategy thanh toán và Builder tạo Order. Controller chỉ kiểm tra request, gọi Facade và trả View.
->
-> Đây là Facade Pattern: che giấu sự phức tạp bên trong và cung cấp một cổng sử dụng đơn giản cho client."
-
----
-
-## 11. Proxy — cache danh sách phim (1 phút 30 giây)
-
-### Chức năng trên web
-
-1. Mở trang chủ — danh sách phim hiển thị.
-2. Refresh trang.
-3. Danh sách phim được đọc từ database lần đầu, các lần sau có thể lấy từ cache.
-
-### File cần mở
-
-- `Controllers/MoviesController.cs`
-- `Data/Proxy/CachedMoviesServiceProxy.cs`
-- `Program.cs`
-
-### Code trong `MoviesController.cs`
+Trong Controller:
 
 ```csharp
 private readonly IMoviesService _service;
 
-public MoviesController(
-    IMoviesService service,
-    IWebHostEnvironment webHostEnvironment,
-    IShowtimesService showtimesService)
+public MoviesController(IMoviesService service, ...)
 {
     _service = service;
-    _webHostEnvironment = webHostEnvironment;
-    _showtimesService = showtimesService;
 }
 
 public async Task<IActionResult> Index()
@@ -901,7 +108,7 @@ public async Task<IActionResult> Index()
 }
 ```
 
-### Code trong `Program.cs` — đăng ký Proxy
+Trong `Program.cs`, `IMoviesService` được cung cấp bởi proxy:
 
 ```csharp
 builder.Services.AddScoped<MoviesService>();
@@ -914,7 +121,9 @@ builder.Services.AddScoped<IMoviesService>(sp =>
 });
 ```
 
-### Code trong `CachedMoviesServiceProxy.cs`
+### Pattern: Proxy
+
+`CachedMoviesServiceProxy` đóng vai trò đại diện cho `MoviesService` thật. Client là `MoviesController` chỉ biết `IMoviesService`, không cần biết có cache ở phía sau.
 
 ```csharp
 public async Task<IEnumerable<Movie>> GetAllAsync()
@@ -925,217 +134,220 @@ public async Task<IEnumerable<Movie>> GetAllAsync()
         return await _realService.GetAllAsync();
     }) ?? Enumerable.Empty<Movie>();
 }
-
-public async Task<Movie> GetByIdAsync(int id)
-{
-    string key = $"movies:id:{id}";
-    return await _cache.GetOrCreateAsync(key, async entry =>
-    {
-        entry.SlidingExpiration = DefaultExpiry;
-        return await _realService.GetByIdAsync(id);
-    }) ?? null!;
-}
-
-public async Task AddAsync(Movie entity)
-{
-    await _realService.AddAsync(entity);
-    InvalidateAllCaches();
-}
-
-public async Task UpdateAsync(int id, Movie entity)
-{
-    await _realService.UpdateAsync(id, entity);
-    InvalidateAllCaches();
-}
 ```
 
-### Giải thích
+**Cách giải thích:**
 
-> "Tại đây `MoviesController` chỉ biết `IMoviesService`. Đối tượng thực tế được DI cấp vào lại là `CachedMoviesServiceProxy`, không phải `MoviesService` trực tiếp. Proxy có cùng interface với service thật, nhưng đứng phía trước để thêm cơ chế cache.
->
-> Lần đầu gọi `GetAllAsync`, proxy gọi `_realService.GetAllAsync()` rồi lưu kết quả vào `IMemoryCache` với key `movies:all`. Những lần đọc tiếp theo có thể lấy dữ liệu từ cache, giảm truy vấn database. Các thao tác thêm, sửa, xóa vẫn được chuyển tiếp cho service thật và gọi `InvalidateAllCaches()`.
->
-> Đây là Proxy Pattern: một đối tượng đại diện cho đối tượng thật và kiểm soát cách client truy cập đối tượng đó."
+- Lần đầu gọi `Index`, proxy lấy dữ liệu từ service thật và lưu vào `IMemoryCache`.
+- Các lần đọc tiếp theo có thể lấy từ cache, giảm truy vấn database.
+- Các thao tác `AddAsync`, `UpdateAsync`, `DeleteAsync` vẫn chuyển tiếp tới service thật.
+- Controller không bị thay đổi nếu sau này thay `IMemoryCache` bằng Redis.
+
+**Lợi ích:** Kiểm soát truy cập và tối ưu dữ liệu đọc nhiều mà không sửa `MoviesController`.
+
+> Lưu ý khi thuyết trình: các method `GetAllAsync` có `includeProperties` trong proxy hiện chuyển thẳng tới service thật; cache hiện tập trung ở các method đọc danh sách/chi tiết không có include.
 
 ---
 
-# PHẦN IV — BEHAVIORAL PATTERNS (Nhóm hành vi — 11 phút)
+## Bước 2 — Xem chi tiết phim: MVC và Dependency Injection
+
+### Thao tác trên web
+
+1. Bấm vào một phim.
+2. Chỉ ra phần mô tả, thể loại, rạp và các suất chiếu.
+3. Bấm “Đặt vé” ở một suất chiếu.
+
+### Code cần mở
+
+`Controllers/MoviesController.cs:43-52`:
+
+```csharp
+public async Task<IActionResult> Details(int id)
+{
+    var movieDetails = await _service.GetMovieByIdAsync(id);
+    if (movieDetails == null) return View("NotFound");
+
+    var showtimes = await _showtimesService
+        .GetShowtimesByMovieIdAsync(id);
+    ViewBag.Showtimes = showtimes;
+
+    return View(movieDetails);
+}
+```
+
+**Pattern nền tảng:** MVC kết hợp Service Layer. Controller nhận request, gọi service, đưa model sang View; truy vấn và nghiệp vụ dữ liệu không nằm trực tiếp trong Razor View.
 
 ---
 
-## 12. Chain of Responsibility — kiểm tra dữ liệu đặt vé (2 phút 30 giây)
+## Bước 3 — Chọn ghế: Bridge Pattern
 
-### Chức năng trên web
+### Thao tác trên web
 
-Kiểm tra nhiều bước: Validation → Kiểm tra ghế → Kiểm tra voucher → Kiểm tra thành viên. Sai ở đâu thì dừng ở handler đó.
+1. Chọn rạp và phòng chiếu.
+2. Chọn một ghế Standard, một ghế VIP hoặc Couple.
+3. Quan sát giá ghế thay đổi theo loại.
+4. Có thể mở DevTools/Network và gọi endpoint `Orders/GetSeatsForShowtime` để thấy JSON có `type`, `price`, `isAvailable`.
 
-### File cần mở
+### Code cần mở
 
-`Data/Chain/OrderPipeline.cs`
+- `Controllers/OrdersController.cs:260-293`
+- `Models/Bridge/SeatPricingBridge.cs:3-53`
+- `Models/Seat.cs:7-33`
 
-### Code — Ghép chuỗi
+Trong Controller:
 
 ```csharp
-public static class OrderPipelineBuilder
-{
-    public static OrderPipelineHandler Build(IOrdersService ordersService)
-    {
-        var validation = new ValidationHandler();
-        var seats = new SeatAvailabilityHandler(ordersService);
-        var voucher = new VoucherValidationHandler(ordersService);
-        var member = new MemberValidationHandler(ordersService);
+price = new SeatPricingBridge(s.SeatType)
+    .GetPrice(showtime.Price),
+isAvailable = s.IsAvailable
+    && !bookedSeats.Contains(s.Row + s.Number.ToString())
+```
 
-        validation.SetNext(seats).SetNext(voucher).SetNext(member);
-        return validation;
+Trong Bridge:
+
+```csharp
+public class SeatPricingBridge
+{
+    private readonly ISeatingPricingStrategy _strategy;
+
+    public SeatPricingBridge(SeatType seatType)
+    {
+        _strategy = seatType switch
+        {
+            SeatType.VIP => new VipPricingStrategy(),
+            SeatType.Couple => new CouplePricingStrategy(),
+            SeatType.Disabled => new DisabledPricingStrategy(),
+            _ => new StandardPricingStrategy()
+        };
     }
+
+    public double GetPrice(double basePrice)
+        => _strategy.CalculatePrice(basePrice);
 }
 ```
 
-### Code — ValidationHandler
+### Pattern: Bridge
+
+Bridge tách:
+
+- **Abstraction:** `SeatPricingBridge` — cách hệ thống yêu cầu tính giá.
+- **Implementation:** `ISeatingPricingStrategy` và các lớp `StandardPricingStrategy`, `VipPricingStrategy`, `CouplePricingStrategy`, `DisabledPricingStrategy` — quy tắc giá cụ thể.
+
+Ví dụ giá cơ bản là 100.000 VND:
+
+| Loại ghế | Implementation | Giá minh họa |
+|---|---|---:|
+| Standard | `basePrice` | 100.000 |
+| VIP | `basePrice * 1.2` | 120.000 |
+| Couple | `basePrice * 2.0` | 200.000 |
+| Disabled | `basePrice * 0.5` | 50.000 |
+
+**Cách giải thích:** Nếu thêm loại ghế mới, ta thêm pricing strategy tương ứng thay vì rải thêm nhiều `if/else` trong Controller. Phần hiển thị/chọn ghế và phần tính giá có thể thay đổi độc lập.
+
+---
+
+## Bước 4 — Submit đặt vé: Facade Pattern
+
+### Thao tác trên web
+
+1. Chọn ghế còn trống.
+2. Nhập họ tên, email.
+3. Nhập voucher nếu có.
+4. Chọn `Cash` hoặc `PayPal`.
+5. Nhấn đặt vé.
+
+### Code cần mở
+
+- `Controllers/OrdersController.cs:296-335`
+- `Data/Facade/BookingFacade.cs:34-145`
+
+Action trong Controller rất ngắn:
 
 ```csharp
-public class ValidationHandler : OrderPipelineHandler
+[HttpPost]
+public async Task<IActionResult> BookTickets(BookTicketsVM model)
 {
-    public override async Task<OrderPipelineResult> HandleAsync(
-        OrderPipelineRequest request,
-        OrderPipelineResult result)
+    if (!ModelState.IsValid)
     {
-        if (request.Model.ShowtimeId <= 0)
-        {
-            result.IsValid = false;
-            result.Message = "Suất chiếu không hợp lệ.";
-            return result;
-        }
-
-        if (string.IsNullOrEmpty(request.Model.SelectedSeats))
-        {
-            result.IsValid = false;
-            result.Message = "Vui lòng chọn ít nhất một ghế.";
-            return result;
-        }
-
-        var seats = request.Model.SelectedSeats
-            .Split(',').Select(s => s.Trim())
-            .Where(s => !string.IsNullOrEmpty(s)).ToList();
-
-        if (!seats.Any())
-        {
-            result.IsValid = false;
-            result.Message = "Danh sách ghế trống.";
-            return result;
-        }
-
-        if (seats.Count > 10)
-        {
-            result.IsValid = false;
-            result.Message = "Không thể đặt quá 10 ghế mỗi lần.";
-            return result;
-        }
-
-        return _next != null
-            ? await _next.HandleAsync(request, result)
-            : result;
+        TempData["BookingError"] =
+            "Vui lòng nhập đầy đủ thông tin đặt vé hợp lệ.";
+        return RedirectToAction(nameof(BookTickets),
+            new { showtimeId = model.ShowtimeId });
     }
+
+    var result = await _bookingFacade.ProcessBookingAsync(
+        model, User.Identity?.Name);
+
+    if (!result.Success)
+    {
+        TempData["BookingError"] = result.Message;
+        return RedirectToAction(nameof(BookTickets),
+            new { showtimeId = model.ShowtimeId });
+    }
+
+    return View("BookingCompleted");
 }
 ```
 
-### Code — SeatAvailabilityHandler
+### Pattern: Facade
 
-```csharp
-public class SeatAvailabilityHandler : OrderPipelineHandler
-{
-    private readonly IOrdersService _ordersService;
+`BookingFacade` cung cấp một cổng đơn giản cho toàn bộ subsystem đặt vé. Bên trong Facade thực hiện:
 
-    public SeatAvailabilityHandler(IOrdersService ordersService)
-        => _ordersService = ordersService;
+1. Kiểm tra đã chọn ghế.
+2. Lấy `Showtime`.
+3. Parse danh sách ghế.
+4. Kiểm tra ghế đã bị đặt.
+5. Tính giá bằng Bridge.
+6. Tính giảm giá voucher.
+7. Gọi thanh toán.
+8. Tạo Order bằng Builder.
+9. Lưu order qua `IOrdersService`.
 
-    public override async Task<OrderPipelineResult> HandleAsync(
-        OrderPipelineRequest request,
-        OrderPipelineResult result)
-    {
-        if (!result.IsValid) return result;
+Ví dụ đoạn gọi từ Controller:
 
-        var bookedSeats = await _ordersService
-            .GetBookedSeatsForShowtimeAsync(request.Model.ShowtimeId);
-
-        var selectedSeats = request.Model.SelectedSeats
-            .Split(',').Select(s => s.Trim())
-            .Where(s => !string.IsNullOrEmpty(s)).ToList();
-
-        foreach (var seat in selectedSeats)
-        {
-            if (bookedSeats.Contains(seat))
-            {
-                result.IsValid = false;
-                result.Message =
-                    $"Ghế {seat} đã được đặt bởi người khác. Vui lòng chọn ghế khác.";
-                return result;
-            }
-        }
-
-        return _next != null
-            ? await _next.HandleAsync(request, result)
-            : result;
-    }
-}
+```text
+OrdersController
+      |
+      +--> IBookingFacade.ProcessBookingAsync(...)
+                |
+                +--> IShowtimesService
+                +--> ISeatsService
+                +--> IOrdersService
+                +--> PaymentContext
+                +--> OrderBuilder
+                +--> AppDbContext
 ```
 
-### Code — VoucherValidationHandler
+**Lợi ích:** Controller chỉ điều phối request/response. Nếu thay đổi quy trình đặt vé, phần lớn thay đổi nằm trong `BookingFacade`, không làm Controller phình to.
+
+---
+
+## Bước 5 — Kiểm tra dữ liệu đặt vé: Chain of Responsibility
+
+Luồng đặt vé hiện còn được kiểm tra qua pipeline trong Mediator handler. Mở:
+
+- `Data/Chain/OrderPipeline.cs:23-237`
+- `Data/Mediator/BookingMediator.cs:102-155`
+
+Pipeline được ghép như sau:
 
 ```csharp
-public class VoucherValidationHandler : OrderPipelineHandler
-{
-    private readonly IOrdersService _ordersService;
+var validation = new ValidationHandler();
+var seats = new SeatAvailabilityHandler(ordersService);
+var voucher = new VoucherValidationHandler(ordersService);
+var member = new MemberValidationHandler(ordersService);
 
-    public VoucherValidationHandler(IOrdersService ordersService)
-        => _ordersService = ordersService;
-
-    public override async Task<OrderPipelineResult> HandleAsync(
-        OrderPipelineRequest request,
-        OrderPipelineResult result)
-    {
-        if (!result.IsValid) return result;
-
-        if (!string.IsNullOrEmpty(request.Model.VoucherCode))
-        {
-            var voucher = await _ordersService
-                .GetVoucherByCodeAsync(request.Model.VoucherCode);
-
-            if (voucher == null)
-            {
-                result.IsValid = false;
-                result.Message = "Mã voucher không tồn tại.";
-                return result;
-            }
-
-            if (!voucher.IsActive)
-            {
-                result.IsValid = false;
-                result.Message = "Mã voucher đã bị vô hiệu hóa.";
-                return result;
-            }
-
-            if (voucher.ExpiryDate < DateTime.Now)
-            {
-                result.IsValid = false;
-                result.Message = "Mã voucher đã hết hạn.";
-                return result;
-            }
-
-            result.AppliedDiscounts.Add(
-                voucher.IsPercentage
-                    ? $"Voucher {voucher.Code}: {voucher.DiscountPercentage}% giảm"
-                    : $"Voucher {voucher.Code}: {voucher.DiscountAmount:N0}đ giảm");
-        }
-
-        return _next != null
-            ? await _next.HandleAsync(request, result)
-            : result;
-    }
-}
+validation.SetNext(seats).SetNext(voucher).SetNext(member);
 ```
 
-### Chuỗi thực tế
+### Pattern: Chain of Responsibility
+
+Mỗi handler xử lý một bước và quyết định:
+
+- Nếu dữ liệu sai: dừng chain và trả thông báo.
+- Nếu hợp lệ: chuyển sang `_next`.
+
+Chuỗi thực tế:
 
 ```text
 ValidationHandler
@@ -1150,35 +362,44 @@ VoucherValidationHandler
 MemberValidationHandler
 ```
 
-### Demo lỗi có kiểm soát
+Ví dụ `SeatAvailabilityHandler`:
 
-- Submit form trống → handler `Validation` báo lỗi và dừng.
-- Nhập voucher hết hạn → handler `VoucherValidation` dừng.
-- Nhập hơn 10 ghế → `Validation` báo "Không thể đặt quá 10 ghế mỗi lần."
+```csharp
+foreach (var seat in selectedSeats)
+{
+    if (bookedSeats.Contains(seat))
+    {
+        result.IsValid = false;
+        result.Message = $"Ghế {seat} đã được đặt bởi người khác.";
+        return result;
+    }
+}
 
-### Giải thích
+return _next != null
+    ? await _next.HandleAsync(request, result)
+    : result;
+```
 
-> "Các bước kiểm tra được xếp thành chuỗi: kiểm tra request, kiểm tra ghế, kiểm tra voucher và kiểm tra thành viên. Mỗi handler có thể xử lý lỗi rồi dừng ngay, hoặc chuyển request cho handler tiếp theo qua `_next`.
->
-> Vì vậy, khi người dùng chưa chọn ghế, hệ thống không cần chạy các bước kiểm tra voucher và thành viên. Khi thêm quy tắc mới, chỉ cần thêm handler vào chuỗi mà không sửa toàn bộ Controller.
->
-> Đây là Chain of Responsibility: request đi qua nhiều đối tượng xử lý tuần tự, và mỗi đối tượng quyết định xử lý hay chuyển tiếp."
+**Demo lỗi:** Chọn một ghế đã đặt hoặc nhập hơn 10 ghế. Pipeline dừng đúng tại handler tương ứng, không chạy các bước sau.
+
+**Lợi ích:** Thêm bước kiểm tra mới — ví dụ kiểm tra giới hạn thành viên hoặc chống đặt trùng — bằng cách thêm handler, không sửa tất cả logic hiện có.
 
 ---
 
-## 13. Strategy — chọn phương thức thanh toán (1 phút 30 giây)
+## Bước 6 — Chọn phương thức thanh toán: Strategy Pattern
 
-### Chức năng trên web
+### Code cần mở
 
-1. Ở form đặt vé, chọn `Cash` — thanh toán tại rạp.
-2. Đổi sang `PayPal` nếu giao diện có lựa chọn.
-3. Quan sát kết quả giao dịch thành công.
+`Data/Strategy/PaymentStrategy.cs:3-120` và `Data/Facade/BookingFacade.cs:99-105`.
 
-### File cần mở
+```csharp
+var paymentCtx = new PaymentContext();
+paymentCtx.SetStrategyByName(model.PaymentMethod);
+var paymentResult = await paymentCtx.PayAsync(
+    totalPrice, $"ORDER-{DateTime.Now.Ticks}");
+```
 
-`Data/Strategy/PaymentStrategy.cs`
-
-### Code
+Các strategy:
 
 ```csharp
 public interface IPaymentStrategy
@@ -1188,124 +409,179 @@ public interface IPaymentStrategy
     Task<PaymentResult> PayAsync(double amount, string orderId);
     Task<RefundResult> RefundAsync(string transactionId, double amount);
 }
-
-public class CashPaymentStrategy : IPaymentStrategy
-{
-    public string Name => "Thanh toán tại rạp";
-    public string PaymentMethod => "Cash";
-
-    public Task<PaymentResult> PayAsync(double amount, string orderId)
-    {
-        return Task.FromResult(new PaymentResult
-        {
-            Success = true,
-            TransactionId = $"CASH-{orderId}-{DateTime.Now.Ticks}",
-            Message = "Thanh toán tại rạp - vui lòng thanh toán khi nhận vé."
-        });
-    }
-}
-
-public class PayPalPaymentStrategy : IPaymentStrategy
-{
-    public string Name => "PayPal";
-    public string PaymentMethod => "PayPal";
-
-    public async Task<PaymentResult> PayAsync(double amount, string orderId)
-    {
-        await Task.Delay(100); // mô phỏng API call
-        return new PaymentResult
-        {
-            Success = true,
-            TransactionId = $"PP-{orderId}-{DateTime.Now.Ticks}",
-            Message = "Thanh toán PayPal thành công."
-        };
-    }
-}
-
-public class PaymentContext
-{
-    private IPaymentStrategy? _strategy;
-
-    public void SetStrategy(IPaymentStrategy strategy)
-        => _strategy = strategy;
-
-    public void SetStrategyByName(string? name)
-    {
-        var method = name?.ToLower() ?? "cash";
-        _strategy = method switch
-        {
-            "paypal" => new PayPalPaymentStrategy("CLIENT_ID", "CLIENT_SECRET"),
-            _        => new CashPaymentStrategy()
-        };
-    }
-
-    public async Task<PaymentResult> PayAsync(double amount, string orderId)
-    {
-        if (_strategy == null)
-            throw new InvalidOperationException(
-                "Payment strategy not set.");
-        return await _strategy.PayAsync(amount, orderId);
-    }
-
-    public string CurrentPaymentMethod
-        => _strategy?.PaymentMethod ?? "Unknown";
-}
 ```
 
-### Gọi từ `BookingFacade.cs`
+- `CashPaymentStrategy`: sinh mã giao dịch Cash, thông báo thanh toán tại rạp.
+- `PayPalPaymentStrategy`: mô phỏng API PayPal bằng `Task.Delay` trong bản demo.
+- `PaymentContext`: giữ strategy hiện tại và ủy quyền `PayAsync`/`RefundAsync`.
+
+### Pattern: Strategy
+
+Strategy đóng gói các thuật toán thanh toán có cùng interface. Client có thể thay đổi thuật toán lúc runtime:
 
 ```csharp
-var paymentCtx = new PaymentContext();
-paymentCtx.SetStrategyByName(model.PaymentMethod);
-var paymentResult = await paymentCtx.PayAsync(
-    totalPrice, $"ORDER-{DateTime.Now.Ticks}");
+paymentCtx.SetStrategyByName("cash");
+// hoặc
+paymentCtx.SetStrategyByName("paypal");
 ```
 
-### Giải thích
+**Cách giải thích:** Nếu thêm MoMo, VNPay hoặc thẻ ngân hàng, chỉ cần thêm class implement `IPaymentStrategy` và đăng ký/chọn nó. Code tạo order không cần biết chi tiết API của từng nhà cung cấp.
 
-> "Cash và PayPal đều có cùng interface `IPaymentStrategy`, nhưng bên trong có thuật toán thanh toán khác nhau. `PaymentContext` giữ strategy hiện tại và ủy quyền thao tác `PayAsync`.
->
-> Code đặt Order không cần biết chi tiết Cash hay PayPal. Khi người dùng đổi lựa chọn, Context đổi implementation tại runtime. Nếu thêm MoMo hoặc VNPay, chỉ cần thêm class triển khai interface, sau đó bổ sung cách chọn strategy.
->
-> Đây là Strategy Pattern. Lưu ý: `PayPalPaymentStrategy` hiện tại là stub dùng `Task.Delay`, chưa gọi API thật."
+> Trong project hiện tại PayPal là stub để minh họa; khi production cần thay phần mô phỏng bằng SDK/API thật và đưa secret vào configuration/secret store, không hard-code.
 
 ---
 
-## 14. State — vòng đời Order (2 phút)
+## Bước 7 — Tạo Order: Builder Pattern
 
-### Chức năng trên web
+### Code cần mở
 
-1. Đăng nhập tài khoản Admin.
-2. Mở trang quản lý booking.
-3. Tìm order vừa tạo.
-4. Bấm **Confirm** — trạng thái chuyển từ `Purchased` sang `Confirmed`.
-5. Thu **Cancel** hoặc **Refund** nếu có dữ liệu test.
-
-### File cần mở
-
-`Data/State/OrderStateMachine.cs`
-
-### Code
+- `Models/Builders/OrderBuilder.cs:5-77`
+- `Data/Facade/BookingFacade.cs:107-115`
 
 ```csharp
-public interface IOrderState
-{
-    string StatusName { get; }
-    bool CanTransitionTo(string newStatus);
-    Task OnEnterAsync(Order order, AppDbContext context);
-}
+var order = new OrderBuilder()
+    .SetCustomer(model.Name ?? "Guest", model.Email ?? "", userId ?? "")
+    .SetShowtime(model.ShowtimeId, model.SelectedSeats,
+                 selectedSeats.Count, showtime.Price)
+    .ApplyVoucher(discount, totalPrice)
+    .RedeemPoints(model.PointsRedeemed, totalPrice - discount)
+    .SetPaymentMethod(paymentCtx.CurrentPaymentMethod)
+    .CalculateTotal()
+    .Build();
+```
 
+### Pattern: Builder
+
+`Order` có nhiều dữ liệu: khách hàng, suất chiếu, ghế, voucher, điểm, phương thức thanh toán, tổng tiền. Builder chia việc tạo thành các bước có tên rõ ràng.
+
+`CalculateTotal()` tập trung công thức:
+
+```csharp
+_finalTotal = _subtotal
+    - _order.DiscountAmount
+    - _order.PointsRedeemed;
+
+if (_finalTotal < 0) _finalTotal = 0;
+_order.TotalPrice = _finalTotal;
+```
+
+**Lợi ích:**
+
+- Code gọi dễ đọc như một quy trình nghiệp vụ.
+- Không phải truyền một constructor có quá nhiều tham số.
+- Logic tính tổng tập trung một chỗ.
+- Thêm bước mới ít ảnh hưởng tới nơi khác.
+
+> `OrderBuilder` có interface `IOrderBuilder`, được đăng ký DI trong `Program.cs`, vì vậy có thể thay implementation hoặc mock khi test.
+
+---
+
+## Bước 8 — Giá cuối cùng: Decorator Pattern
+
+### Code cần mở
+
+`Data/Decorators/PricingDecorators.cs:5-217`.
+
+Các decorator hiện có:
+
+- `BasePriceCalculator`: giá gốc.
+- `VoucherDecorator`: giảm theo voucher.
+- `LoyaltyPointsDecorator`: trừ điểm tích lũy.
+- `HappyHourDecorator`: giảm 15% từ 14:00–17:00.
+
+Cách xếp lớp:
+
+```csharp
+IOrderPriceDecorator calc = new BasePriceCalculator(basePrice);
+
+if (voucher != null)
+    calc = new VoucherDecorator(calc, voucher);
+
+if (loyaltyPoints > 0)
+    calc = new LoyaltyPointsDecorator(calc, loyaltyPoints);
+
+if (applyHappyHour)
+    calc = new HappyHourDecorator(calc,
+        new TimeSpan(14, 0, 0),
+        new TimeSpan(17, 0, 0),
+        15.0);
+```
+
+### Pattern: Decorator
+
+Mỗi decorator bọc một calculator khác và thêm một trách nhiệm tính giá. Không cần tạo hàng loạt class như `PriceWithVoucherAndPointsAndHappyHour`.
+
+```text
+BasePrice
+   -> VoucherDecorator
+      -> LoyaltyPointsDecorator
+         -> HappyHourDecorator
+```
+
+**Lợi ích:** Các chính sách giảm giá có thể xếp chồng linh hoạt. Có thể thêm `MemberDiscountDecorator` hoặc `FestivalDiscountDecorator` mà không sửa calculator gốc.
+
+> Trong `BookingFacade`, voucher và điểm hiện cũng được chuyển vào Builder để lưu Order. File `PricingDecorators.cs` cung cấp cơ chế tính giá/breakdown mở rộng và được đăng ký sử dụng qua `OrderPriceCalculator` trong kiến trúc pattern của project.
+
+---
+
+## Bước 9 — Quản trị xác nhận đơn: State + Mediator + Observer
+
+### Thao tác trên web
+
+1. Đăng nhập tài khoản Admin.
+2. Mở màn hình quản lý booking.
+3. Bấm **Confirm** cho order vừa tạo.
+4. Quan sát status chuyển từ `Purchased` sang `Confirmed`.
+5. Nếu có thời gian, thử Cancel hoặc Refund để minh họa trạng thái khác.
+
+### 9.1 Mediator Pattern
+
+Mở:
+
+- `Data/Mediator/BookingMediator.cs:10-97`
+- `Program.cs:75-82`
+
+`IMediator` nhận request và tìm handler tương ứng:
+
+```csharp
+public interface IMediator
+{
+    Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request);
+}
+```
+
+Các request hiện có:
+
+- `CompleteBookingRequest`
+- `CancelBookingRequest`
+- `ConfirmBookingRequest`
+
+`AppMediator` dùng request type để tìm `IRequestHandler<,>` từ DI và gọi `HandleAsync`.
+
+**Ý nghĩa:** Controller không cần biết trực tiếp toàn bộ service nào phải gọi khi Confirm/Cancel. Nó gửi một request đến Mediator; handler chịu trách nhiệm quy trình tương ứng.
+
+### 9.2 State Pattern
+
+Mở `Data/State/OrderStateMachine.cs:7-115`.
+
+Các trạng thái:
+
+```text
+Purchased  --> Confirmed
+    |             |
+    v             v
+Cancelled      Refunded
+```
+
+Mỗi state quyết định được chuyển sang trạng thái nào:
+
+```csharp
 public class PurchasedState : IOrderState
 {
     public string StatusName => "Purchased";
 
     public bool CanTransitionTo(string newStatus)
         => newStatus is "Confirmed" or "Cancelled";
-
-    public Task OnEnterAsync(Order order, AppDbContext context)
-    {
-        return Task.CompletedTask;
-    }
 }
 
 public class ConfirmedState : IOrderState
@@ -1314,137 +590,23 @@ public class ConfirmedState : IOrderState
 
     public bool CanTransitionTo(string newStatus)
         => newStatus is "Cancelled" or "Refunded";
-
-    public Task OnEnterAsync(Order order, AppDbContext context)
-    {
-        return Task.CompletedTask;
-    }
-}
-
-public class CancelledState : IOrderState
-{
-    public string StatusName => "Cancelled";
-
-    public bool CanTransitionTo(string newStatus) => false;
-
-    public async Task OnEnterAsync(Order order, AppDbContext context)
-    {
-        if (!string.IsNullOrEmpty(order.Email))
-        {
-            var member = await context.Members
-                .FirstOrDefaultAsync(
-                    m => m.Email.ToLower() == order.Email.ToLower());
-            if (member != null)
-            {
-                double finalPrice = Math.Max(0,
-                    order.TotalPrice - order.DiscountAmount);
-                int earned = (int)(finalPrice / 10000);
-                member.Points = Math.Max(0,
-                    member.Points - earned
-                    + (order.PointsRedeemed / 1000));
-            }
-            await context.SaveChangesAsync();
-        }
-    }
-}
-
-public class RefundedState : IOrderState
-{
-    public string StatusName => "Refunded";
-
-    public bool CanTransitionTo(string newStatus) => false;
-
-    public async Task OnEnterAsync(Order order, AppDbContext context)
-    {
-        if (!string.IsNullOrEmpty(order.Email))
-        {
-            var member = await context.Members
-                .FirstOrDefaultAsync(
-                    m => m.Email.ToLower() == order.Email.ToLower());
-            if (member != null)
-            {
-                double finalPrice = Math.Max(0,
-                    order.TotalPrice - order.DiscountAmount);
-                int earned = (int)(finalPrice / 10000);
-                member.Points = Math.Max(0,
-                    member.Points - earned
-                    + (order.PointsRedeemed / 1000));
-            }
-            await context.SaveChangesAsync();
-        }
-    }
-}
-
-public class OrderStateMachine
-{
-    private static readonly Dictionary<string, IOrderState> _states = new()
-    {
-        ["Purchased"] = new PurchasedState(),
-        ["Confirmed"] = new ConfirmedState(),
-        ["Cancelled"] = new CancelledState(),
-        ["Refunded"]  = new RefundedState(),
-    };
-
-    public static IOrderState? GetState(string statusName)
-        => _states.GetValueOrDefault(statusName);
-
-    public static bool IsValidStatus(string statusName)
-        => _states.ContainsKey(statusName);
-
-    public static bool CanTransition(string from, string to)
-    {
-        if (!_states.TryGetValue(from, out var state))
-            return false;
-        return state.CanTransitionTo(to);
-    }
 }
 ```
 
-### Sơ đồ vòng đời
+Khi service gọi `ChangeOrderStatusWithStateAsync`, hệ thống kiểm tra transition hợp lệ trước khi cập nhật DB. Ví dụ order đã `Cancelled` không thể quay lại `Confirmed`.
 
-```text
-Purchased  --->  Confirmed  --->  Refunded
-    |                 |
-    +---------------> Cancelled
-```
+**Lợi ích:** Quy tắc chuyển trạng thái được tập trung, rõ ràng và tránh một `switch` lớn rải trong Controller.
 
-### Giải thích
+### 9.3 Observer Pattern
 
-> "Đơn hàng có vòng đời. Từ `Purchased` có thể sang `Confirmed` hoặc `Cancelled`; từ `Confirmed` có thể sang `Cancelled` hoặc `Refunded`. Trạng thái `Cancelled` và `Refunded` là trạng thái kết thúc (terminal).
->
-> Mỗi state tự mô tả các transition hợp lệ qua `CanTransitionTo`. Vì vậy hệ thống không cho phép một order đã hủy quay ngược lại thành Confirmed. Quy tắc trạng thái được tập trung thay vì rải nhiều `if/else` trong Controller.
->
-> Khi gọi `OnEnterAsync`, mỗi state thực hiện hành động phụ: `CancelledState` giải phóng điểm tích lũy, `RefundedState` hoàn điểm. Nếu thêm trạng thái mới, chỉ cần thêm class implement `IOrderState`."
+Mở:
 
-### Lưu ý thực hiện
+- `Data/Observer/OrderObserver.cs:10-85`
+- `Program.cs:68-72`
 
-> "Một số action quản trị hiện tại gọi `ChangeOrderStatusAsync` trực tiếp. Method `ChangeOrderStatusWithStateAsync` trong `OrdersService` dùng `OrderStateMachine.CanTransition` để kiểm tra trước khi cập nhật DB."
-
----
-
-## 15. Observer — thông báo khi Order đổi trạng thái (2 phút)
-
-### Chức năng trên web
-
-Khi Admin Confirm, Cancel hoặc Refund, hệ thống tự động:
-- Ghi log (audit)
-- Cộng/trừ điểm thành viên
-- Mô phỏng gửi email
-
-### File cần mở
-
-- `Data/Observer/OrderObserver.cs`
-- `Program.cs`
-
-### Code — Interface
+Subject:
 
 ```csharp
-public interface IOrderObserver
-{
-    Task OnOrderStatusChangedAsync(Order order,
-        string oldStatus, string newStatus);
-}
-
 public interface IOrderSubject
 {
     void Attach(IOrderObserver observer);
@@ -1454,135 +616,13 @@ public interface IOrderSubject
 }
 ```
 
-### Code — AuditLogObserver
+Các observer:
 
-```csharp
-public class AuditLogObserver : IOrderObserver
-{
-    private readonly ILogger<AuditLogObserver> _logger;
+1. `AuditLogObserver`: ghi log thay đổi trạng thái.
+2. `LoyaltyPointsObserver`: cộng/trừ điểm thành viên.
+3. `EmailNotificationObserver`: ghi/gửi thông báo email.
 
-    public AuditLogObserver(ILogger<AuditLogObserver> logger)
-    {
-        _logger = logger;
-    }
-
-    public Task OnOrderStatusChangedAsync(Order order,
-        string oldStatus, string newStatus)
-    {
-        _logger.LogInformation(
-            "[AUDIT] Order #{OrderId} | Email: {Email} "
-            + "| {Old} → {New} | Total: {Total:N0}VND "
-            + "| Date: {Date}",
-            order.Id,
-            string.IsNullOrEmpty(order.Email)
-                ? "(guest)" : order.Email,
-            oldStatus, newStatus,
-            order.TotalPrice - order.DiscountAmount,
-            order.OrderDate);
-        return Task.CompletedTask;
-    }
-}
-```
-
-### Code — LoyaltyPointsObserver
-
-```csharp
-public class LoyaltyPointsObserver : IOrderObserver
-{
-    private readonly IServiceScopeFactory _scopeFactory;
-
-    public LoyaltyPointsObserver(
-        IServiceScopeFactory scopeFactory)
-    {
-        _scopeFactory = scopeFactory;
-    }
-
-    public async Task OnOrderStatusChangedAsync(
-        Order order, string oldStatus, string newStatus)
-    {
-        if (string.IsNullOrEmpty(order.Email)) return;
-
-        using var scope = _scopeFactory.CreateScope();
-        var context = scope.ServiceProvider
-            .GetRequiredService<AppDbContext>();
-
-        var member = await context.Members
-            .FirstOrDefaultAsync(
-                m => m.Email.ToLower() == order.Email.ToLower());
-        if (member == null) return;
-
-        double finalPrice = Math.Max(0,
-            order.TotalPrice - order.DiscountAmount);
-        int earned = (int)(finalPrice / 10000);
-
-        if (newStatus == "Cancelled" || newStatus == "Refunded")
-        {
-            member.Points = Math.Max(0,
-                member.Points - earned
-                + (order.PointsRedeemed / 1000));
-        }
-        else if (newStatus == "Confirmed"
-            && oldStatus == "Purchased")
-        {
-            member.Points += earned;
-        }
-
-        await context.SaveChangesAsync();
-    }
-}
-```
-
-### Code — EmailNotificationObserver
-
-```csharp
-public class EmailNotificationObserver : IOrderObserver
-{
-    private readonly ILogger<EmailNotificationObserver> _logger;
-
-    public EmailNotificationObserver(
-        ILogger<EmailNotificationObserver> logger)
-    {
-        _logger = logger;
-    }
-
-    public Task OnOrderStatusChangedAsync(Order order,
-        string oldStatus, string newStatus)
-    {
-        if (string.IsNullOrEmpty(order.Email))
-            return Task.CompletedTask;
-
-        var (subject, body) = newStatus switch
-        {
-            "Confirmed" => (
-                $"[MovieCinema] Xác nhận đơn hàng #{order.Id}",
-                $"Đơn hàng #{order.Id} đã được xác nhận.\n"
-                + $"Tổng cộng: {(order.TotalPrice - order.DiscountAmount):N0}VND"
-            ),
-            "Cancelled" => (
-                $"[MovieCinema] Đơn hàng #{order.Id} đã bị hủy",
-                $"Đơn hàng #{order.Id} đã được hủy."
-            ),
-            "Refunded" => (
-                $"[MovieCinema] Hoàn tiền đơn hàng #{order.Id}",
-                $"Đơn hàng #{order.Id} đã được hoàn tiền.\n"
-                + $"Số tiền hoàn: {(order.TotalPrice - order.DiscountAmount):N0}VND"
-            ),
-            _ => (null as string, null as string)
-        };
-
-        if (subject != null)
-        {
-            _logger.LogInformation(
-                "[EMAIL] To: {Email} | Subject: {Subject}",
-                order.Email, subject);
-        }
-
-        return Task.CompletedTask;
-    }
-}
-```
-
-### Đăng ký DI
+Đăng ký DI:
 
 ```csharp
 builder.Services.AddSingleton<IOrderSubject, OrderSubject>();
@@ -1591,279 +631,114 @@ builder.Services.AddScoped<IOrderObserver, LoyaltyPointsObserver>();
 builder.Services.AddScoped<IOrderObserver, EmailNotificationObserver>();
 ```
 
-### Giải thích
+### Lời giải thích khi demo
 
-> "Admin chỉ thực hiện một hành động là Confirm. Sau khi status thay đổi, Subject thông báo cho nhiều observer. Vì vậy muốn thêm SMS, lịch sử hoạt động hoặc cập nhật dashboard thì chỉ cần thêm một observer mới, không phải sửa logic nghiệp vụ Confirm chính.
->
-> Observer xử lý độc lập; nếu một observer lỗi, `OrderSubject` bắt lỗi để các observer còn lại vẫn được thông báo. Đây là Observer Pattern: một subject phát sự kiện và nhiều observer phản ứng độc lập."
+“Admin chỉ thực hiện một hành động là Confirm. Sau khi status thay đổi, Subject thông báo cho nhiều observer. Vì vậy muốn thêm SMS, lịch sử hoạt động hoặc cập nhật dashboard thì chỉ cần thêm một observer mới, không phải sửa logic Confirm chính.”
 
----
-
-## 16. Mediator — định tuyến request và handler (2 phút)
-
-### Chức năng trên web
-
-Mediator điều phối các request đến handler tương ứng. `CompleteBookingHandler` chạy Chain trước rồi gọi Facade. `ConfirmBookingHandler` và `CancelBookingHandler` dùng `ChangeOrderStatusWithStateAsync`.
-
-### File cần mở
-
-`Data/Mediator/BookingMediator.cs`
-
-### Code — Interface và Mediator
-
-```csharp
-public interface IMediator
-{
-    Task<TResponse> SendAsync<TResponse>(
-        IRequest<TResponse> request);
-}
-
-public interface IRequest<TResponse> { }
-
-public interface IRequestHandler<TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
-{
-    Task<TResponse> HandleAsync(TRequest request);
-}
-
-public class AppMediator : IMediator
-{
-    private readonly IServiceProvider _serviceProvider;
-
-    public AppMediator(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-    }
-
-    public async Task<TResponse> SendAsync<TResponse>(
-        IRequest<TResponse> request)
-    {
-        var handlerType = typeof(IRequestHandler<,>)
-            .MakeGenericType(request.GetType(), typeof(TResponse));
-
-        var handler = _serviceProvider
-            .GetServices(handlerType).FirstOrDefault();
-
-        if (handler == null)
-            throw new InvalidOperationException(
-                $"Handler not found for {request.GetType().Name}");
-
-        var method = handlerType.GetMethod("HandleAsync");
-        if (method == null)
-            throw new InvalidOperationException(
-                $"HandleAsync not found on {handlerType.Name}");
-
-        var result = method.Invoke(handler, new[] { request });
-        if (result is Task<TResponse> task)
-            return await task;
-
-        throw new InvalidOperationException(
-            "Handler did not return Task");
-    }
-}
-```
-
-### Code — CompleteBookingHandler
-
-```csharp
-public class CompleteBookingHandler
-    : IRequestHandler<CompleteBookingRequest, CompleteBookingResponse>
-{
-    private readonly IBookingFacade _facade;
-    private readonly IOrdersService _ordersService;
-
-    public CompleteBookingHandler(
-        IBookingFacade facade,
-        IOrdersService ordersService)
-    {
-        _facade = facade;
-        _ordersService = ordersService;
-    }
-
-    public async Task<CompleteBookingResponse> HandleAsync(
-        CompleteBookingRequest request)
-    {
-        // 1. Validate qua Chain of Responsibility
-        var pipeline = OrderPipelineBuilder.Build(_ordersService);
-        var pipelineResult = await pipeline.HandleAsync(
-            new OrderPipelineRequest { Model = request.Model },
-            new OrderPipelineResult { IsValid = true });
-
-        if (!pipelineResult.IsValid)
-        {
-            return new CompleteBookingResponse
-            {
-                Success = false,
-                Message = pipelineResult.Message
-            };
-        }
-
-        // 2. Process booking qua Facade
-        var bookingResult = await _facade
-            .ProcessBookingAsync(request.Model, request.UserId);
-
-        return new CompleteBookingResponse
-        {
-            Success = bookingResult.Success,
-            Message = bookingResult.Message,
-            OrderId = bookingResult.OrderId,
-            FinalPrice = bookingResult.FinalPrice,
-            AppliedDiscounts = pipelineResult.AppliedDiscounts
-        };
-    }
-}
-```
-
-### Code — ConfirmBookingHandler
-
-```csharp
-public class ConfirmBookingHandler
-    : IRequestHandler<ConfirmBookingRequest, ConfirmBookingResponse>
-{
-    private readonly IOrdersService _ordersService;
-
-    public ConfirmBookingHandler(IOrdersService ordersService)
-    {
-        _ordersService = ordersService;
-    }
-
-    public async Task<ConfirmBookingResponse> HandleAsync(
-        ConfirmBookingRequest request)
-    {
-        var result = await _ordersService
-            .ChangeOrderStatusWithStateAsync(
-                request.OrderId, "Confirmed");
-
-        return new ConfirmBookingResponse
-        {
-            Success = result.Success,
-            Message = result.Success
-                ? "Xác nhận đơn hàng thành công."
-                : result.Message
-        };
-    }
-}
-```
-
-### Đăng ký DI
-
-```csharp
-builder.Services.AddScoped<IMediator, AppMediator>();
-builder.Services.AddScoped<IRequestHandler<CompleteBookingRequest,
-    CompleteBookingResponse>, CompleteBookingHandler>();
-builder.Services.AddScoped<IRequestHandler<CancelBookingRequest,
-    CancelBookingResponse>, CancelBookingHandler>();
-builder.Services.AddScoped<IRequestHandler<ConfirmBookingRequest,
-    ConfirmBookingResponse>, ConfirmBookingHandler>();
-```
-
-### Giải thích
-
-> "Mediator giảm coupling: Controller không cần biết trực tiếp toàn bộ service nào phải gọi khi Confirm/Cancel. Nó gửi một request đến Mediator; handler chịu trách nhiệm quy trình tương ứng.
->
-> Trong project, Mediator phối hợp với cả Chain và Facade: `CompleteBookingHandler` chạy Chain trước, nếu hợp lệ thì gọi Facade. `ConfirmBookingHandler` và `CancelBookingHandler` dùng `ChangeOrderStatusWithStateAsync` để kết nối với State Pattern.
->
-> Đây là Mediator Pattern: encapsulates cách một tập hợp objects tương tác, giảm tham chiếu trực tiếp giữa các thành phần."
+Observer xử lý độc lập; nếu một observer lỗi, `OrderSubject` bắt lỗi để các observer còn lại vẫn được thông báo.
 
 ---
 
-# PHẦN V — TỔNG KẾT (1 phút)
+# 4. Demo báo cáo: Service/Repository và hướng mở rộng Visitor
+
+### Thao tác trên web
+
+1. Vào `Admin → Revenue` hoặc `Admin → Reports`.
+2. Chọn khoảng ngày.
+3. Chỉ ra tổng doanh thu, số vé, doanh thu theo phim/rạp.
+
+`OrdersController` lấy order qua `IOrdersService`, lọc các order `Purchased`/`Confirmed`, sau đó group theo ngày, tháng, phim và rạp.
+
+### Pattern nền tảng: Repository/Service
+
+Các service dùng `IEntityBaseRepository<T>` để chuẩn hóa thao tác CRUD. Controller không truy cập trực tiếp từng câu SQL cho nghiệp vụ thông thường.
+
+### Visitor — hướng áp dụng cho phần báo cáo
+
+Project có tài liệu và cấu trúc minh họa Visitor trong `DESIGN_PATTERNS_GUIDE.md`. Ý tưởng là tách thuật toán phân tích khỏi model `Order`/`OrderItem`:
+
+- `NetRevenueVisitor`: doanh thu thực sau giảm giá.
+- `GrossRevenueVisitor`: doanh thu gộp.
+- `TicketCountVisitor`: tổng số vé.
+
+Khi cần thêm cách phân tích mới, đổi Visitor thay vì sửa model. Khi thuyết trình nên nói rõ: phần báo cáo đang chạy thực tế chủ yếu dùng LINQ trong `OrdersController`; Visitor là hướng refactor/mở rộng được tài liệu hóa cho module này, không nên khẳng định toàn bộ report hiện tại đã dùng Visitor.
 
 ---
 
-## 17. Bảng tổng kết
+# 5. Bảng tổng kết các pattern trong project
 
-| # | Pattern | File chính | Chức năng trên web |
+| Pattern | Vị trí chính | Bài toán giải quyết | Câu nói ngắn khi demo |
 |---|---|---|---|
-| 1 | MVC + DI + Repository | Controllers/, Data/Base/, Program.cs | Nền tảng toàn bộ |
-| 2 | Singleton | Program.cs (`AddSingleton`) | `OrderSubject`, `ShoppingCart` |
-| 3 | Factory Method | Program.cs (DI registration) | Tạo service từ DI container |
-| 4 | Abstract Factory | Guide mục 2.4 | Chính sách theo cinema (mở rộng) |
-| 5 | Builder | `Models/Builders/OrderBuilder.cs` | Tạo Order nhiều bước |
-| 6 | Adapter | Guide mục 3.4 | Bao bọc SDK PayPal |
-| 7 | Bridge | `Models/Bridge/SeatPricingBridge.cs` | Tính giá theo loại ghế |
-| 8 | Composite | Guide mục 3.6 | Ghế theo hàng/phòng |
-| 9 | Decorator | `Data/Decorators/PricingDecorators.cs` | Xếp chồng giảm giá |
-| 10 | Facade | `Data/Facade/BookingFacade.cs` | Đặt vé qua một cổng |
-| 11 | Proxy | `Data/Proxy/CachedMoviesServiceProxy.cs` | Cache danh sách phim |
-| 12 | Chain of Responsibility | `Data/Chain/OrderPipeline.cs` | Kiểm tra ghế/voucher |
-| 13 | Strategy | `Data/Strategy/PaymentStrategy.cs` | Chọn Cash/PayPal |
-| 14 | State | `Data/State/OrderStateMachine.cs` | Vòng đời Order |
-| 15 | Observer | `Data/Observer/OrderObserver.cs` | Log/điểm/email |
-| 16 | Mediator | `Data/Mediator/BookingMediator.cs` | Định tuyến request |
-
-### Kết luận mẫu
-
-> "Qua luồng đặt vé và quản trị, mỗi pattern giải quyết một vấn đề cụ thể:
->
-> - **Singleton** quản lý Observer và Session một cách duy nhất.
-> - **Factory Method** tạo đối tượng service qua DI container.
-> - **Builder** tạo Order nhiều thuộc tính theo từng bước dễ đọc.
-> - **Bridge** giữ cho quy tắc giá ghế độc lập với phần hiển thị.
-> - **Decorator** xếp chồng chính sách giảm giá linh hoạt.
-> - **Facade** làm luồng đặt vé đơn giản với Controller.
-> - **Proxy** giảm truy vấn khi đọc phim bằng cache.
-> - **Chain of Responsibility** chia kiểm tra thành nhiều bước có thể mở rộng.
-> - **Strategy** cho phép đổi phương thức thanh toán tại runtime.
-> - **State** bảo vệ vòng đời đơn hàng, không cho chuyển trạng thái bất hợp lệ.
-> - **Observer** giúp thêm email, log, điểm thành viên mà không sửa nghiệp vụ chính.
-> - **Mediator** giảm liên kết giữa các thành phần, phối hợp Chain và Facade.
->
-> Design pattern chỉ có ý nghĩa khi gắn với nhu cầu cụ thể. Kết quả là code dễ đọc hơn, dễ test hơn và thuận lợi mở rộng khi hệ thống thêm phương thức thanh toán, loại ghế, chương trình khuyến mãi hoặc kênh thông báo mới."
+| MVC | `Controllers/`, `Views/`, `Models/` | Tách request, giao diện và dữ liệu | Controller nhận request, View hiển thị, Model biểu diễn dữ liệu |
+| Dependency Injection | `Program.cs` | Giảm phụ thuộc cứng | Controller nhận interface qua constructor |
+| Service/Repository | `Data/Services/`, `Data/Base/` | Chuẩn hóa truy cập dữ liệu/nghiệp vụ | Không nhồi truy vấn vào View |
+| Proxy | `Data/Proxy/CachedMoviesServiceProxy.cs` | Cache phim | Cùng interface nhưng thêm cache ở phía trước service thật |
+| Bridge | `Models/Bridge/SeatPricingBridge.cs` | Tính giá theo loại ghế | Tách loại ghế khỏi thuật toán giá |
+| Facade | `Data/Facade/BookingFacade.cs` | Đơn giản hóa đặt vé | Controller gọi một cổng thay vì nhiều service |
+| Chain of Responsibility | `Data/Chain/OrderPipeline.cs` | Kiểm tra nhiều bước | Sai ở đâu thì dừng ở handler đó |
+| Strategy | `Data/Strategy/PaymentStrategy.cs` | Nhiều phương thức thanh toán | Cash/PayPal thay thế được tại runtime |
+| Builder | `Models/Builders/OrderBuilder.cs` | Tạo Order nhiều dữ liệu | Ghép Order bằng fluent chain dễ đọc |
+| Decorator | `Data/Decorators/PricingDecorators.cs` | Xếp chồng giảm giá | Voucher, điểm, Happy Hour bọc nhau |
+| State | `Data/State/OrderStateMachine.cs` | Kiểm soát vòng đời Order | Không cho chuyển trạng thái bất hợp lệ |
+| Mediator | `Data/Mediator/BookingMediator.cs` | Giảm coupling giữa Controller và handler | Gửi request, handler xử lý |
+| Observer | `Data/Observer/OrderObserver.cs` | Phản ứng khi status đổi | Log, điểm, email nhận cùng một event |
+| Singleton theo DI | `OrderSubject` đăng ký `AddSingleton` | Một Subject dùng chung | Subject quản lý danh sách observer |
 
 ---
 
-# PHẦN VI — PHÂN BỔ THỜI GIAN 30 PHÚT
+# 6. Kết luận bài thuyết trình
 
-| Phần | Nội dung | Thời lượng |
-|---|---|---:|
-| 1 | Mở đầu, kiến trúc, DI | 2 phút |
-| 2 | Singleton | 1 phút |
-| 3 | Factory Method | 1 phút |
-| 4 | Builder | 2 phút |
-| 5 | Abstract Factory | 1 phút |
-| 6 | Adapter | 1 phút |
-| 7 | Bridge | 2 phút 30 giây |
-| 8 | Composite | 1 phút 30 giây |
-| 9 | Decorator | 2 phút 30 giây |
-| 10 | Facade | 2 phút 30 giây |
-| 11 | Proxy | 1 phút 30 giây |
-| 12 | Chain of Responsibility | 2 phút 30 giây |
-| 13 | Strategy | 1 phút 30 giây |
-| 14 | State | 2 phút |
-| 15 | Observer | 2 phút |
-| 16 | Mediator | 2 phút |
-| 17 | Tổng kết | 1 phút |
-| **Tổng** | | **30 phút** |
+### Lời kết mẫu
+
+“Qua luồng demo, có thể thấy các pattern không được dùng chỉ để làm code phức tạp hơn. Mỗi pattern xuất hiện để giải quyết một vấn đề cụ thể:
+
+- Proxy giảm truy vấn khi đọc phim.
+- Bridge giữ cho quy tắc giá ghế độc lập.
+- Facade làm luồng đặt vé đơn giản với Controller.
+- Chain kiểm tra tuần tự và có thể mở rộng.
+- Strategy cho phép đổi phương thức thanh toán.
+- Builder tạo Order nhiều bước dễ đọc.
+- Decorator xếp chồng chính sách giảm giá.
+- State bảo vệ vòng đời đơn hàng.
+- Mediator giảm liên kết giữa các thành phần.
+- Observer giúp thêm email, log, điểm thành viên mà không sửa nghiệp vụ chính.
+
+Kết quả là code dễ đọc hơn, dễ test hơn và thuận lợi mở rộng khi hệ thống thêm phương thức thanh toán, loại ghế, chương trình khuyến mãi hoặc kênh thông báo mới.”
 
 ---
 
-# PHẦN VII — CÂU HỎI PHẢN BIỆN THƯỜNG GẶP
+# 7. Câu hỏi thường gặp khi bảo vệ/demo
 
 ### 1. Vì sao không viết tất cả vào `OrdersController`?
 
-> "Controller chỉ nên tập trung nhận request và trả response. Nếu vừa kiểm tra ghế, tính tiền, gọi thanh toán, tạo Order và gửi thông báo trong một action, code sẽ khó đọc, khó test và khó thay đổi. Facade, service và các pattern giúp chia trách nhiệm đó."
+Vì Controller chỉ nên điều phối HTTP request/response. Nếu vừa kiểm tra ghế, tính tiền, thanh toán, lưu DB và gửi thông báo trong một action, code sẽ khó đọc, khó test và khó thay đổi.
 
 ### 2. Facade và Mediator khác nhau thế nào?
 
-> "Facade gom nhiều thao tác của một subsystem thành một API nghiệp vụ — ở đây là toàn bộ quy trình booking. Mediator điều phối các request/handler, giúp Controller không tham chiếu trực tiếp nhiều thành phần xử lý. Hai pattern có thể phối hợp: Mediator handler chạy Chain trước rồi gọi Facade."
+- **Facade** gom các thao tác của một subsystem thành một API nghiệp vụ — ở đây là toàn bộ quy trình booking.
+- **Mediator** điều phối các request/handler, giúp Controller không tham chiếu trực tiếp nhiều thành phần xử lý.
 
-### 3. Bridge và Strategy có giống nhau không?
+Chúng có thể cùng xuất hiện: Mediator handler nhận request, sau đó gọi Facade để xử lý booking.
 
-> "Cả hai đều dùng interface để tách thuật toán, nhưng mục đích khác nhau. Bridge tách hai chiều biến đổi độc lập: abstraction tính giá và implementation theo loại ghế. Strategy chủ yếu dùng để thay thế một thuật toán tại runtime, ví dụ Cash hoặc PayPal."
+### 3. Strategy và Bridge có giống nhau không?
+
+Cả hai đều dùng abstraction/interface để tách thuật toán, nhưng mục đích khác nhau:
+
+- **Strategy:** thay thế một thuật toán tại runtime, ví dụ Cash/PayPal.
+- **Bridge:** tách hai chiều biến đổi độc lập, ví dụ abstraction tính giá và implementation theo loại ghế.
 
 ### 4. Nếu thêm MoMo thì sửa ở đâu?
 
-> "Tạo `MoMoPaymentStrategy : IPaymentStrategy`, triển khai `PayAsync`/`RefundAsync`, rồi bổ sung cách chọn strategy và đăng ký cấu hình. Phần Controller/Builder không cần biết chi tiết API MoMo."
+Tạo `MoMoPaymentStrategy : IPaymentStrategy`, triển khai `PayAsync`/`RefundAsync`, rồi bổ sung cách chọn strategy và đăng ký cấu hình. Phần Controller/Builder không cần biết chi tiết API MoMo.
 
 ### 5. Nếu ghế đã bị người khác đặt ngay sau khi kiểm tra thì sao?
 
-> "Pipeline kiểm tra giúp phát hiện ở bước nghiệp vụ, nhưng production vẫn cần transaction/unique constraint hoặc cơ chế giữ ghế có thời hạn để xử lý race condition giữa bước kiểm tra và bước lưu Order."
+Pipeline kiểm tra giúp phát hiện ở bước nghiệp vụ, nhưng production vẫn cần transaction/unique constraint hoặc cơ chế giữ ghế có thời hạn để xử lý race condition giữa bước kiểm tra và bước lưu Order.
 
 ### 6. PayPal trong demo đã gọi API thật chưa?
 
-> "Chưa. `PayPalPaymentStrategy` hiện mô phỏng API bằng `Task.Delay`; đây là điểm cần thay bằng SDK/API thật khi triển khai production, đồng thời bảo vệ secret trong configuration/secret manager."
+Chưa. `PayPalPaymentStrategy` hiện mô phỏng API bằng `Task.Delay`; đây là điểm cần thay bằng SDK/API thật khi triển khai production, đồng thời bảo vệ secret trong configuration/secret manager.
 
-### 7. Observer có gây side effect ẩn không?
+### 7. Pattern nào nên ưu tiên nếu refactor tiếp?
 
-> "Trong project, Observer ghi log, cập nhật điểm, gửi email — đều có thể coi là side effect. Tuy nhiên chúng được cô lập trong từng observer, và `OrderSubject` bắt lỗi để không lan truyền."
+Ưu tiên giữ Controller mỏng, đưa báo cáo ra service riêng, thêm transaction cho booking, hoàn thiện cache invalidation trong `CachedMoviesServiceProxy`, và đưa các chính sách thanh toán/giảm giá vào DI thay vì khởi tạo trực tiếp trong Facade.
